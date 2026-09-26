@@ -61,17 +61,6 @@ body:before{
   letter-spacing:2.1px;font-weight:800;text-transform:uppercase;
   margin:0 auto 22px;max-width:680px;
 }
-.school-branding{
-  display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
-  gap:8px;margin:-8px auto 20px;max-width:680px;
-  color:rgba(255,255,255,.92);font-size:12px;font-weight:700;
-}
-.school-branding span,.school-branding a{
-  display:inline-flex;align-items:center;min-height:30px;padding:6px 11px;
-  border:1px solid rgba(255,255,255,.28);border-radius:999px;
-  background:rgba(255,255,255,.09);color:inherit;text-decoration:none;
-}
-.school-branding a:hover{background:rgba(255,255,255,.16)}
 .system-title{
   text-align:center;color:#fff;font-size:40px;line-height:1.08;
   font-weight:900;margin:0 auto 24px;max-width:650px;
@@ -130,9 +119,7 @@ body:before{
   .top-images{width:215px;height:215px;margin-bottom:17px}
   .campus{width:175px;height:175px;border-width:8px}
   .crest{width:82px;height:82px;border-width:5px}
-  .school-name{font-size:15px;letter-spacing:1.4px;margin-bottom:12px}
-  .school-branding{font-size:10px;gap:5px;margin-bottom:18px}
-  .school-branding span,.school-branding a{padding:5px 8px;min-height:26px}
+  .school-name{font-size:15px;letter-spacing:1.4px;margin-bottom:18px}
   .system-title{font-size:32px;margin-bottom:20px}
   .welcome{font-size:18px;margin-bottom:22px}
   .quality{font-size:14px;margin-bottom:23px;padding:12px 14px}
@@ -254,15 +241,12 @@ async function goLogin(){
   window.location.href="login.html";
 }
 
-guardLogout.onclick=goLogin;
-collegeLogout.onclick=goLogin;
+if(guardLogout) guardLogout.onclick=goLogin;
+if(collegeLogout) collegeLogout.onclick=goLogin;
 
 async function applySchoolBranding(school,schoolId){
   const name=school.name || school.shortName || schoolId;
   const shortName=school.shortName || school.name || schoolId;
-  const state=school.state || school.location || school.city || "";
-  const website=school.website || school.websiteUrl || school.webSite || "";
-  const tagline=school.tagline || school.motto || school.slogan || "Quality Education • Practical Training • Professional Excellence";
 
   document.title=`${shortName} | College Admin`;
 
@@ -272,55 +256,24 @@ async function applySchoolBranding(school,schoolId){
   document.getElementById("schoolFooter").textContent=
     `${name} Student & Management System`;
 
-  const schoolIdEl=document.getElementById("schoolIdDisplay");
-  const stateEl=document.getElementById("schoolState");
-  const websiteEl=document.getElementById("schoolWebsite");
-  const taglineEl=document.getElementById("schoolTagline");
-
-  if(schoolIdEl) schoolIdEl.textContent=`College ID: ${schoolId}`;
-  if(stateEl){
-    stateEl.textContent=state ? `📍 ${state}` : "";
-    stateEl.style.display=state ? "inline-flex" : "none";
-  }
-  if(taglineEl) taglineEl.textContent=tagline;
-  if(websiteEl){
-    let normalized=String(website).trim();
-    if(normalized && !/^https?:\\/\\//i.test(normalized)) normalized=`https://${normalized}`;
-    try{
-      const u=normalized ? new URL(normalized) : null;
-      if(u && (u.protocol==="http:" || u.protocol==="https:")){
-        websiteEl.href=u.href;
-        websiteEl.textContent="🌐 Visit School Website";
-        websiteEl.style.display="inline-flex";
-      }else throw new Error("invalid");
-    }catch(e){
-      websiteEl.removeAttribute("href");
-      websiteEl.textContent="";
-      websiteEl.style.display="none";
-    }
-  }
-
-  // Optional school-specific colors. These are read from Firestore and
-  // safely fall back to the standard MYSCHOOL-MIS green theme.
-  const primary=school.primaryColor || school.brandColor || school.accentColor || "#087b43";
-  const dark=school.secondaryColor || school.darkColor || "#075c38";
-  if(/^#[0-9a-f]{6}$/i.test(String(primary))){
-    document.documentElement.style.setProperty("--green",primary);
-    document.documentElement.style.setProperty("--green2",primary);
-  }
-  if(/^#[0-9a-f]{6}$/i.test(String(dark))){
-    document.documentElement.style.setProperty("--dark",dark);
-  }
-
-  // Support common logo field names so the logo can be managed from
-  // the school's Firestore profile without changing this file again.
+  // Support common logo field names so the logo can be added later
+  // from School Settings without changing this file again.
   const logoUrl =
-    school.logoUrl || school.logoURL || school.logo || school.schoolLogo ||
-    school.crestUrl || school.crestURL || "";
+    school.logoUrl ||
+    school.logoURL ||
+    school.logo ||
+    school.schoolLogo ||
+    school.crestUrl ||
+    school.crestURL ||
+    "";
 
   const campusUrl =
-    school.campusImageUrl || school.campusImageURL || school.campusImage ||
-    school.bannerUrl || school.bannerURL || "";
+    school.campusImageUrl ||
+    school.campusImageURL ||
+    school.campusImage ||
+    school.bannerUrl ||
+    school.bannerURL ||
+    "";
 
   if(logoUrl){
     const logo=document.getElementById("schoolLogo");
@@ -334,7 +287,7 @@ async function applySchoolBranding(school,schoolId){
     campus.alt=`${name} campus`;
   }
 
-  const session={
+  sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify({
     uid:misAuth.currentUser?.uid || "",
     email:misAuth.currentUser?.email || "",
     name:school.adminName || "",
@@ -343,18 +296,8 @@ async function applySchoolBranding(school,schoolId){
     schoolId,
     schoolName:name,
     shortName,
-    state,
-    website,
-    tagline,
-    logoUrl,
-    campusUrl,
-    primaryColor:primary,
-    secondaryColor:dark,
     verifiedAt:new Date().toISOString()
-  };
-
-  sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify(session));
-  window.MY_SCHOOL_CONTEXT=session;
+  }));
 }
 
 (async()=>{
@@ -371,10 +314,8 @@ async function applySchoolBranding(school,schoolId){
     }
 
     try{
-      // IMPORTANT: the authorization document ID MUST exactly match
-      // the Firebase Authentication UID.
-      const userRef=doc(misDb,"collegeUsers",user.uid);
-      const userSnap=await getDoc(userRef);
+      // The authorization document ID MUST exactly match Firebase Auth UID.
+      const userSnap=await getDoc(doc(misDb,"collegeUsers",user.uid));
 
       if(!userSnap.exists()){
         await signOut(misAuth);
@@ -405,48 +346,21 @@ async function applySchoolBranding(school,schoolId){
         return;
       }
 
-      // The collegeUsers document is the primary authorization check.
-      // The school document is used for branding only. If its read fails,
-      // do not lock the admin out; Firestore Rules still protect the data.
-      let school={
-        name:schoolId,
-        shortName:schoolId,
-        status:"active"
-      };
+      const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
 
-      try{
-        const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
-
-        if(schoolSnap.exists()){
-          school={...school,...schoolSnap.data()};
-
-          if(String(school.status||"active").trim().toLowerCase()==="suspended"){
-            await signOut(misAuth);
-            deny("This college is currently suspended by the Platform Super Admin.");
-            return;
-          }
-        }else{
-          console.warn("School record not found:",schoolId);
-        }
-      }catch(schoolError){
-        console.warn("School profile lookup failed; continuing with schoolId:",schoolError);
+      if(!schoolSnap.exists()){
+        await signOut(misAuth);
+        deny("The assigned college record could not be found.");
+        return;
       }
 
-      // Keep a clean school-specific session for every page in this portal.
-      const session={
-        uid:user.uid,
-        email:user.email||data.email||"",
-        name:data.name||data.fullName||data.adminName||"",
-        role:"collegeAdmin",
-        status:"active",
-        schoolId,
-        schoolName:school.name||school.shortName||schoolId,
-        shortName:school.shortName||school.name||schoolId,
-        verifiedAt:new Date().toISOString()
-      };
+      const school=schoolSnap.data();
 
-      sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify(session));
-      window.MY_SCHOOL_CONTEXT=session;
+      if(String(school.status||"active").trim().toLowerCase()==="suspended"){
+        await signOut(misAuth);
+        deny("This college is currently suspended by the Platform Super Admin.");
+        return;
+      }
 
       await applySchoolBranding(school,schoolId);
 
@@ -454,21 +368,11 @@ async function applySchoolBranding(school,schoolId){
       if(adminApp) adminApp.style.display="block";
 
     }catch(error){
-      console.error("MYSCHOOL-MIS College Admin verification failed:",error);
-
-      const code=String(error?.code||"");
-
-      if(code.includes("permission-denied")){
-        deny(
-          "Firestore permission denied while reading your College Admin authorization. Make sure the latest Firestore Rules are published and the collegeUsers document ID exactly matches your Firebase Authentication UID."
-        );
-      }else if(code.includes("unauthenticated")){
-        deny("Firebase Authentication is not active. Please return to the College Admin login and sign in again.");
+      console.error("College Admin verification error:",error);
+      if(error?.code==="permission-denied"){
+        deny("Firestore permission denied while verifying your College Admin account. Make sure the latest Firestore Rules are published.");
       }else{
-        deny(
-          "Unable to verify College Admin access. Firebase error: "+
-          (error?.message||code||"Unknown error")
-        );
+        deny("Unable to verify your College Admin access. Check Firebase configuration and Firestore Rules.");
       }
     }
   });
@@ -552,12 +456,6 @@ window.uploadAdminVideo = (file, folder="ggchst/admin-videos") =>
       <span id="schoolName">College</span>
     </div>
 
-    <div class="school-branding" aria-label="School information">
-      <span id="schoolIdDisplay">College ID</span>
-      <span id="schoolState" style="display:none"></span>
-      <a id="schoolWebsite" href="#" target="_blank" rel="noopener noreferrer" style="display:none"></a>
-    </div>
-
     <h1 id="systemTitle" class="system-title">College Administration Portal</h1>
 
     <p class="welcome">
@@ -565,8 +463,8 @@ window.uploadAdminVideo = (file, folder="ggchst/admin-videos") =>
       Select the administration workspace you need to continue.
     </p>
 
-    <div id="schoolTagline" class="quality">
-      Quality Education • Practical Training • Professional Excellence
+    <div class="quality">
+      <span>🌿</span> Quality Education • Practical Training • Professional Excellence
     </div>
 
     <div class="section-title">ADMINISTRATION WORKSPACES</div>
