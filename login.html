@@ -143,7 +143,7 @@ input:focus{border-color:#18a957;box-shadow:0 0 0 4px rgba(24,169,87,.10)}
 <script type="module">
 import {initializeApp,getApps,getApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
-  getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut
+  getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut,setPersistence,browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
   getFirestore,doc,getDoc,collection,getDocs,query,where,limit
@@ -164,11 +164,18 @@ const MIS_CONFIG={
   appId:"1:6249445090:web:7f2dd2f6b74261e44cd0bb"
 };
 
-const app=getApps().some(a=>a.name==="mySchoolLoginApp")
-  ? getApp("mySchoolLoginApp")
-  : initializeApp(MIS_CONFIG,"mySchoolLoginApp");
+/* IMPORTANT: use the exact same named Firebase app as admin.html.
+   This keeps Firebase Authentication persistence shared between
+   login.html and the College Admin portal. */
+const app=getApps().some(a=>a.name==="mySchoolApp")
+  ? getApp("mySchoolApp")
+  : initializeApp(MIS_CONFIG,"mySchoolApp");
 const auth=getAuth(app);
 const db=getFirestore(app);
+
+/* Keep the College Admin Firebase session alive when redirecting
+   from login.html to admin.html. */
+await setPersistence(auth,browserLocalPersistence);
 const $=id=>document.getElementById(id);
 
 const params=new URLSearchParams(window.location.search);
