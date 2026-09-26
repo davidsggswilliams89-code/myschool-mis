@@ -143,19 +143,22 @@ body:before{
 </style>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,collection,addDoc,doc,setDoc,updateDoc,deleteDoc,onSnapshot,getDocs,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAoT3LGcdwA3FzHDrPEuhTNCnfiTklGXY",
-  authDomain: "ggchst-sms-new.firebaseapp.com",
-  projectId: "ggchst-sms-new",
-  storageBucket: "ggchst-sms-new.firebasestorage.app",
-  messagingSenderId: "942770190211",
-  appId: "1:942770190211:web:aa9a085a38aaa517b368b6"
+  apiKey: "AIzaSyAas90xxMhc-jsdlvWiTEZJFmVunlY3dJM",
+  authDomain: "myschool-mis.firebaseapp.com",
+  projectId: "myschool-mis",
+  storageBucket: "myschool-mis.firebasestorage.app",
+  messagingSenderId: "6249445090",
+  appId: "1:6249445090:web:7f2dd2f6b74261e44cd0bb"
 };
 
-const app=initializeApp(firebaseConfig); const db=getFirestore(app);
-window.GG={app,db,collection,addDoc,doc,setDoc,updateDoc,deleteDoc,onSnapshot,getDocs,query,orderBy,limit};
+const app=initializeApp(firebaseConfig,"mySchoolApp");
+const db=getFirestore(app);
+const auth=getAuth(app);
+window.GG={app,db,auth,collection,addDoc,doc,setDoc,updateDoc,deleteDoc,onSnapshot,getDocs,query,orderBy,limit};
 window.toast=(m)=>{const e=document.getElementById('toast');if(!e)return;e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',2600)};
 window.esc=(s='')=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 </script>
@@ -449,9 +452,9 @@ const MIS_CONFIG={
   appId:"1:6249445090:web:7f2dd2f6b74261e44cd0bb"
 };
 
-const misApp=getApps().some(a=>a.name==="MYSCHOOL_MIS_ADMIN")
-  ? getApp("MYSCHOOL_MIS_ADMIN")
-  : initializeApp(MIS_CONFIG,"MYSCHOOL_MIS_ADMIN");
+const misApp=getApps().some(a=>a.name==="mySchoolApp")
+  ? getApp("mySchoolApp")
+  : initializeApp(MIS_CONFIG,"mySchoolApp");
 
 const misAuth=getAuth(misApp);
 const misDb=getFirestore(misApp);
