@@ -314,8 +314,10 @@ async function applySchoolBranding(school,schoolId){
     }
 
     try{
-      // The authorization document ID MUST exactly match Firebase Auth UID.
-      const userSnap=await getDoc(doc(misDb,"collegeUsers",user.uid));
+      // IMPORTANT: the authorization document ID MUST exactly match
+      // the Firebase Authentication UID.
+      const userRef=doc(misDb,"collegeUsers",user.uid);
+      const userSnap=await getDoc(userRef);
 
       if(!userSnap.exists()){
         await signOut(misAuth);
@@ -346,21 +348,48 @@ async function applySchoolBranding(school,schoolId){
         return;
       }
 
-      const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
+      // The collegeUsers document is the primary authorization check.
+      // The school document is used for branding only. If its read fails,
+      // do not lock the admin out; Firestore Rules still protect the data.
+      let school={
+        name:schoolId,
+        shortName:schoolId,
+        status:"active"
+      };
 
-      if(!schoolSnap.exists()){
-        await signOut(misAuth);
-        deny("The assigned college record could not be found.");
-        return;
+      try{
+        const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
+
+        if(schoolSnap.exists()){
+          school={...school,...schoolSnap.data()};
+
+          if(String(school.status||"active").trim().toLowerCase()==="suspended"){
+            await signOut(misAuth);
+            deny("This college is currently suspended by the Platform Super Admin.");
+            return;
+          }
+        }else{
+          console.warn("School record not found:",schoolId);
+        }
+      }catch(schoolError){
+        console.warn("School profile lookup failed; continuing with schoolId:",schoolError);
       }
 
-      const school=schoolSnap.data();
+      // Keep a clean school-specific session for every page in this portal.
+      const session={
+        uid:user.uid,
+        email:user.email||data.email||"",
+        name:data.name||data.fullName||data.adminName||"",
+        role:"collegeAdmin",
+        status:"active",
+        schoolId,
+        schoolName:school.name||school.shortName||schoolId,
+        shortName:school.shortName||school.name||schoolId,
+        verifiedAt:new Date().toISOString()
+      };
 
-      if(String(school.status||"active").trim().toLowerCase()==="suspended"){
-        await signOut(misAuth);
-        deny("This college is currently suspended by the Platform Super Admin.");
-        return;
-      }
+      sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify(session));
+      window.MY_SCHOOL_CONTEXT=session;
 
       await applySchoolBranding(school,schoolId);
 
@@ -368,11 +397,21 @@ async function applySchoolBranding(school,schoolId){
       if(adminApp) adminApp.style.display="block";
 
     }catch(error){
-      console.error("College Admin verification error:",error);
-      if(error?.code==="permission-denied"){
-        deny("Firestore permission denied while verifying your College Admin account. Make sure the latest Firestore Rules are published.");
+      console.error("MYSCHOOL-MIS College Admin verification failed:",error);
+
+      const code=String(error?.code||"");
+
+      if(code.includes("permission-denied")){
+        deny(
+          "Firestore permission denied while reading your College Admin authorization. Make sure the latest Firestore Rules are published and the collegeUsers document ID exactly matches your Firebase Authentication UID."
+        );
+      }else if(code.includes("unauthenticated")){
+        deny("Firebase Authentication is not active. Please return to the College Admin login and sign in again.");
       }else{
-        deny("Unable to verify your College Admin access. Check Firebase configuration and Firestore Rules.");
+        deny(
+          "Unable to verify College Admin access. Firebase error: "+
+          (error?.message||code||"Unknown error")
+        );
       }
     }
   });
