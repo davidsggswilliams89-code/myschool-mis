@@ -143,7 +143,7 @@ body:before{
 </style>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,collection,addDoc,doc,setDoc,updateDoc,deleteDoc,onSnapshot,getDocs,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -440,7 +440,7 @@ window.uploadAdminVideo = (file, folder="ggchst/admin-videos") =>
 
 <script type="module">
 import {initializeApp,getApps,getApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const MIS_CONFIG={
@@ -458,6 +458,14 @@ const misApp=getApps().some(a=>a.name==="mySchoolApp")
 
 const misAuth=getAuth(misApp);
 const misDb=getFirestore(misApp);
+
+// Keep the College Admin Firebase session available when moving
+// from the login page to admin.html.
+try {
+  await setPersistence(misAuth,browserLocalPersistence);
+} catch(e) {
+  console.warn("Firebase Auth persistence could not be set:",e);
+}
 
 const guard=document.getElementById("misGuard");
 const title=document.getElementById("misGuardTitle");
@@ -553,7 +561,19 @@ onAuthStateChanged(misAuth,async user=>{
 
   }catch(error){
     console.error("MYSCHOOL-MIS admin verification failed:",error);
-    deny("Unable to verify your College Admin access. Check Firebase configuration and Firestore rules.");
+
+    // Show the real Firebase error instead of hiding it behind a generic message.
+    // This makes configuration/rules problems immediately identifiable.
+    const code=String(error?.code||"");
+    if(code.includes("permission-denied")){
+      deny("Firestore permission denied while verifying your College Admin account. Make sure the latest Firestore Rules are published.");
+    }else if(code.includes("unauthenticated")){
+      deny("Firebase Authentication is not active for this page. Please return to the College Admin login and sign in again.");
+    }else if(code.includes("not-found")){
+      deny("The College Admin authorization record or assigned college could not be found.");
+    }else{
+      deny("Unable to verify College Admin access. Firebase error: "+(error?.message||code||"Unknown error"));
+    }
   }
 });
 
