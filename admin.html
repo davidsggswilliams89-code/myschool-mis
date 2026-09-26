@@ -439,8 +439,10 @@ window.uploadAdminVideo = (file, folder="ggchst/admin-videos") =>
 </div>
 
 <script type="module">
-import {initializeApp,getApps,getApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getApps,getApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {getFirestore,doc,getDoc} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const MIS_CONFIG={
@@ -452,20 +454,17 @@ const MIS_CONFIG={
   appId:"1:6249445090:web:7f2dd2f6b74261e44cd0bb"
 };
 
+// Use the SAME named Firebase app as the College Admin login page.
 const misApp=getApps().some(a=>a.name==="mySchoolApp")
   ? getApp("mySchoolApp")
-  : initializeApp(MIS_CONFIG,"mySchoolApp");
+  : null;
 
-const misAuth=getAuth(misApp);
-const misDb=getFirestore(misApp);
-
-// Keep the College Admin Firebase session available when moving
-// from the login page to admin.html.
-try {
-  await setPersistence(misAuth,browserLocalPersistence);
-} catch(e) {
-  console.warn("Firebase Auth persistence could not be set:",e);
+if(!misApp){
+  console.error("MYSCHOOL-MIS Firebase app is not initialized.");
 }
+
+const misAuth=misApp ? getAuth(misApp) : null;
+const misDb=misApp ? getFirestore(misApp) : null;
 
 const guard=document.getElementById("misGuard");
 const title=document.getElementById("misGuardTitle");
@@ -481,104 +480,166 @@ function deny(message){
 }
 
 logout.onclick=async()=>{
-  try{await signOut(misAuth)}catch(e){}
+  try{ if(misAuth) await signOut(misAuth); }catch(e){}
+  sessionStorage.removeItem("mySchoolCollegeAdmin");
   window.location.href="login.html";
 };
 
-onAuthStateChanged(misAuth,async user=>{
-  if(!user){
-    deny("Your College Admin session is not active. Please sign in again.");
-    return;
-  }
-
+if(!misAuth || !misDb){
+  deny("MYSCHOOL-MIS Firebase could not be initialized. Please open the College Admin login page first.");
+}else{
   try{
-    const ref=doc(misDb,"collegeUsers",user.uid);
-    const snap=await getDoc(ref);
-
-    if(!snap.exists()){
-      await signOut(misAuth);
-      deny("This Firebase account has no College Admin authorization record.");
-      return;
-    }
-
-    const data=snap.data();
-    const role=String(data.role||"").toLowerCase();
-    const status=String(data.status||"").toLowerCase();
-    const schoolId=String(data.schoolId||"").trim();
-
-    if(role!=="collegeadmin" || status!=="active" || !schoolId){
-      await signOut(misAuth);
-      deny("This account is not an active College Admin or has no assigned school.");
-      return;
-    }
-
-    // Confirm the school itself exists and is active.
-    const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
-    if(!schoolSnap.exists()){
-      await signOut(misAuth);
-      deny("The assigned college record could not be found.");
-      return;
-    }
-
-    const school=schoolSnap.data();
-    if(String(school.status||"active").toLowerCase()==="suspended"){
-      await signOut(misAuth);
-      deny("This college is currently suspended by the Platform Super Admin.");
-      return;
-    }
-
-    const session={
-      uid:user.uid,
-      email:user.email||data.email||"",
-      name:data.name||data.fullName||"",
-      role:"collegeAdmin",
-      status:"active",
-      schoolId,
-      schoolName:school.name||school.shortName||schoolId,
-      shortName:school.shortName||"",
-      verifiedAt:new Date().toISOString()
-    };
-
-    sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify(session));
-
-    // Make the current school identity available to the existing page scripts.
-    window.MY_SCHOOL_CONTEXT=session;
-
-    const schoolName=document.querySelector(".school-name");
-    const systemTitle=document.querySelector(".system-title");
-    const footer=document.querySelector(".footer");
-
-    if(schoolName) schoolName.textContent=school.name||school.shortName||schoolId;
-    if(systemTitle) systemTitle.textContent=(school.shortName||schoolId)+" Administration Portal";
-    if(footer) footer.innerHTML=escSafe((school.shortName||schoolId)+" Student & Management System");
-
-    const badge=document.createElement("div");
-    badge.id="collegeIdentity";
-    badge.textContent="College: "+(school.shortName||school.name||schoolId)+" • ID: "+schoolId;
-    if(schoolName) schoolName.insertAdjacentElement("afterend",badge);
-
-    guard.style.display="none";
-
-  }catch(error){
-    console.error("MYSCHOOL-MIS admin verification failed:",error);
-
-    // Show the real Firebase error instead of hiding it behind a generic message.
-    // This makes configuration/rules problems immediately identifiable.
-    const code=String(error?.code||"");
-    if(code.includes("permission-denied")){
-      deny("Firestore permission denied while verifying your College Admin account. Make sure the latest Firestore Rules are published.");
-    }else if(code.includes("unauthenticated")){
-      deny("Firebase Authentication is not active for this page. Please return to the College Admin login and sign in again.");
-    }else if(code.includes("not-found")){
-      deny("The College Admin authorization record or assigned college could not be found.");
-    }else{
-      deny("Unable to verify College Admin access. Firebase error: "+(error?.message||code||"Unknown error"));
-    }
+    await setPersistence(misAuth,browserLocalPersistence);
+  }catch(e){
+    console.warn("Firebase Auth persistence could not be set:",e);
   }
-});
+
+  onAuthStateChanged(misAuth,async user=>{
+    if(!user){
+      deny("Your College Admin session is not active. Please sign in again.");
+      return;
+    }
+
+    try{
+      // IMPORTANT:
+      // The Firestore document ID MUST be exactly the Firebase Auth UID.
+      const userRef=doc(misDb,"collegeUsers",user.uid);
+      const userSnap=await getDoc(userRef);
+
+      if(!userSnap.exists()){
+        await signOut(misAuth);
+        deny("This Firebase account has no College Admin authorization record. The collegeUsers document ID must exactly match the Firebase Authentication UID.");
+        return;
+      }
+
+      const data=userSnap.data();
+      const role=String(data.role||"").trim().toLowerCase();
+      const status=String(data.status||"").trim().toLowerCase();
+      const schoolId=String(data.schoolId||"").trim();
+
+      if(role!=="collegeadmin"){
+        await signOut(misAuth);
+        deny('The College Admin record has an invalid role. It must be "collegeAdmin".');
+        return;
+      }
+
+      if(status!=="active"){
+        await signOut(misAuth);
+        deny('This College Admin account is not active. Its status must be "active".');
+        return;
+      }
+
+      if(!schoolId){
+        await signOut(misAuth);
+        deny("This College Admin account has no schoolId assigned.");
+        return;
+      }
+
+      // The collegeUsers document is the primary authorization check.
+      // School lookup is only used to display the college name.
+      // Firestore Security Rules remain responsible for protecting
+      // all college-specific data.
+      let school={
+        name:schoolId,
+        shortName:schoolId,
+        status:"active"
+      };
+
+      try{
+        const schoolSnap=await getDoc(doc(misDb,"schools",schoolId));
+
+        if(schoolSnap.exists()){
+          school={...school, ...schoolSnap.data()};
+
+          if(String(school.status||"active").trim().toLowerCase()==="suspended"){
+            await signOut(misAuth);
+            deny("This college is currently suspended by the Platform Super Admin.");
+            return;
+          }
+        }else{
+          console.warn("School record not found:",schoolId);
+        }
+      }catch(schoolError){
+        // Do NOT block the College Admin here.
+        // The Firestore Rules protect the actual school data.
+        console.warn("School profile lookup failed; continuing with schoolId:",schoolError);
+      }
+
+      const session={
+        uid:user.uid,
+        email:user.email||data.email||"",
+        name:data.name||data.fullName||"",
+        role:"collegeAdmin",
+        status:"active",
+        schoolId,
+        schoolName:school.name||school.shortName||schoolId,
+        shortName:school.shortName||"",
+        verifiedAt:new Date().toISOString()
+      };
+
+      sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify(session));
+      window.MY_SCHOOL_CONTEXT=session;
+
+      const schoolName=document.querySelector(".school-name");
+      const systemTitle=document.querySelector(".system-title");
+      const footer=document.querySelector(".footer");
+
+      if(schoolName){
+        schoolName.textContent=school.name||school.shortName||schoolId;
+      }
+
+      if(systemTitle){
+        systemTitle.textContent=(school.shortName||schoolId)+" Administration Portal";
+      }
+
+      if(footer){
+        footer.innerHTML=escSafe(
+          (school.shortName||school.name||schoolId)+" Student & Management System"
+        );
+      }
+
+      const oldBadge=document.getElementById("collegeIdentity");
+      if(oldBadge) oldBadge.remove();
+
+      const badge=document.createElement("div");
+      badge.id="collegeIdentity";
+      badge.textContent=
+        "College: "+(school.shortName||school.name||schoolId)+
+        " • ID: "+schoolId;
+
+      if(schoolName){
+        schoolName.insertAdjacentElement("afterend",badge);
+      }
+
+      guard.style.display="none";
+
+    }catch(error){
+      console.error("MYSCHOOL-MIS College Admin verification failed:",error);
+
+      const code=String(error?.code||"");
+
+      if(code.includes("permission-denied")){
+        deny(
+          "Firestore permission denied while reading collegeUsers/"+user.uid+
+          ". Make sure the latest Firestore Rules are published and that the document ID exactly matches this Firebase UID."
+        );
+      }else if(code.includes("unauthenticated")){
+        deny("Firebase Authentication is not active. Please return to the College Admin login and sign in again.");
+      }else{
+        deny(
+          "Unable to verify College Admin access. Firebase error: "+
+          (error?.message||code||"Unknown error")
+        );
+      }
+    }
+  });
+}
 
 function escSafe(value){
-  return String(value??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  return String(value??"").replace(
+    /[&<>"']/g,
+    m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])
+  );
 }
 </script>
 
