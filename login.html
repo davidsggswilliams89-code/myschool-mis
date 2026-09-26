@@ -133,7 +133,7 @@ input:focus{border-color:#18a957;box-shadow:0 0 0 4px rgba(24,169,87,.10)}
       <div id="message" class="message"></div>
 
       <div class="secure">🛡️ &nbsp; Secure Access · Your Information is Protected</div>
-      <div class="small">GCHST Student &amp; Management System</div>
+      <div id="schoolSystemFooter" class="small">Student &amp; Management System</div>
     </form>
   </section>
 
@@ -172,7 +172,20 @@ const db=getFirestore(app);
 const $=id=>document.getElementById(id);
 
 const params=new URLSearchParams(window.location.search);
-const requestedSchoolId=String(params.get("schoolId")||"").trim().toLowerCase();
+
+/*
+  Transitional default for the current test college.
+  A school-specific URL always overrides this value:
+  login.html?schoolId=test-college
+  login.html?schoolId=another-college
+*/
+const DEFAULT_SCHOOL_ID="test-college";
+const urlSchoolId=String(params.get("schoolId")||"").trim().toLowerCase();
+const savedSchoolId=String(localStorage.getItem("mySchoolLastSchoolId")||"").trim().toLowerCase();
+const requestedSchoolId=urlSchoolId || savedSchoolId || DEFAULT_SCHOOL_ID;
+
+/* Keep the selected college for the next visit. */
+localStorage.setItem("mySchoolLastSchoolId",requestedSchoolId);
 
 function message(text,error=false){
   $("message").textContent=text;
@@ -283,6 +296,7 @@ function applyBranding(school,schoolId){
   subtitle.textContent=`Welcome to the official ${short} management portal. Please login with your registered email and password to continue.`;
   badge.textContent=tagline;
   footer.innerHTML=`<strong>${safe(short)} SMS</strong>${website?` • ${safe(website)}`:""}`;
+  if(systemFooter) systemFooter.textContent=`${short} Student & Management System`;
 
   if(logo){
     logoEl.src=logo;
@@ -311,13 +325,11 @@ if(requestedSchoolId){
     applyBranding({name:requestedSchoolId,shortName:requestedSchoolId},requestedSchoolId);
   }
 }else{
-  /* No schoolId: show a neutral landing state instead of silently
-     presenting one college's branding to another college. */
   applyBranding({
     name:"MYSCHOOL-MIS",
     shortName:"MYSCHOOL-MIS",
     tagline:"Multi-College Management Information System"
-  },"");
+  },requestedSchoolId);
 }
 
 async function findUserRecord(user,schoolId){
@@ -398,10 +410,6 @@ $("loginForm").addEventListener("submit",async e=>{
   const email=$("email").value.trim();
   const password=$("password").value;
 
-  if(!requestedSchoolId){
-    message("This login page needs a schoolId. Open the school's official login link.",true);
-    return;
-  }
   if(!email){message("Enter your email address.",true);return;}
   if(!password){message("Enter your password.",true);return;}
 
