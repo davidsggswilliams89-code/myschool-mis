@@ -40,7 +40,7 @@ body{
   box-shadow:0 5px 18px rgba(0,0,0,.18);position:relative;z-index:2;
 }
 .kicker{margin:0 auto;max-width:800px;font-size:19px;line-height:1.3;letter-spacing:1.6px;font-weight:800}
-h1{margin:18px 0 12px;font-size:42px;line-height:1.08;text-shadow:0 2px 2px rgba(0,0,0,.12)}
+h1{margin:18px 0 12px;font-size:42px;word-break:break-word;line-height:1.08;text-shadow:0 2px 2px rgba(0,0,0,.12)}
 .subtitle{max-width:720px;margin:0 auto;font-size:18px;line-height:1.55}
 .badge{
   max-width:760px;margin:24px auto 0;border:2px solid rgba(255,255,255,.27);
@@ -101,16 +101,12 @@ input:focus{border-color:#18a957;box-shadow:0 0 0 4px rgba(24,169,87,.10)}
 <div class="wrap">
   <section class="hero">
     <div class="content">
-      <img class="school-photo"
-           src="https://ggchstgusau.edu.ng/_next/image?q=75&amp;url=%2Fhome-hero.png&amp;w=3840"
-           alt="Green Garden College of Health Sciences and Technology campus">
-      <img class="school-logo"
-           src="logo.png"
-           alt="Gusau College of Health Sciences and Technology logo">
-      <p class="kicker">Gusau College of Health Sciences &amp; Technology, Gusau</p>
-      <h1>GCHST Student &amp; Management System</h1>
-      <p class="subtitle">Welcome to the official school management portal. Please login with your registered email and password to continue.</p>
-      <div class="badge">🌿 Quality Education • Practical Training • Professional Excellence</div>
+      <img id="schoolPhoto" class="school-photo" src="" alt="College campus">
+      <img id="schoolLogo" class="school-logo" src="logo.png" alt="College logo">
+      <p id="schoolKicker" class="kicker">MYSCHOOL-MIS</p>
+      <h1 id="schoolTitle">MYSCHOOL-MIS Student &amp; Management System</h1>
+      <p id="schoolSubtitle" class="subtitle">Welcome to the official school management portal. Please login with your registered email and password to continue.</p>
+      <div id="schoolBadge" class="badge">Multi-College Management Information System</div>
     </div>
   </section>
 
@@ -141,37 +137,25 @@ input:focus{border-color:#18a957;box-shadow:0 0 0 4px rgba(24,169,87,.10)}
     </form>
   </section>
 
-  <div class="footer"><strong>GCHST SMS</strong> • Gusau College of Health Sciences &amp; Technology, Gusau</div>
+  <div id="schoolFooter" class="footer"><strong>MYSCHOOL-MIS</strong> • Multi-College Management Information System</div>
 </div>
 
 <script type="module">
 import {initializeApp,getApps,getApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
-  getAuth,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail
+  getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,signOut
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-  where,
-  limit,
-  doc,
-  getDoc
+  getFirestore,doc,getDoc,collection,getDocs,query,where,limit
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-const gchstFirebaseConfig={
-  apiKey:"AIzaSyAoT3LGcdw3A0FzHDrPEuhTNCnfiTklGXY",
-  authDomain:"ggchst-sms-new.firebaseapp.com",
-  projectId:"ggchst-sms-new",
-  storageBucket:"ggchst-sms-new.firebasestorage.app",
-  messagingSenderId:"942770190211",
-  appId:"1:942770190211:web:aa9a085a38aaa517b368b6"
-};
-
-const mySchoolFirebaseConfig={
+/* =========================================================
+   MYSCHOOL-MIS CENTRAL LOGIN
+   One login.html file can serve every college.
+   Each college is selected by ?schoolId=...
+   Example: login.html?schoolId=test-college
+   ========================================================= */
+const MIS_CONFIG={
   apiKey:"AIzaSyAas90xxMhc-jsdlvWiTEZJFmVunlY3dJM",
   authDomain:"myschool-mis.firebaseapp.com",
   projectId:"myschool-mis",
@@ -180,18 +164,22 @@ const mySchoolFirebaseConfig={
   appId:"1:6249445090:web:7f2dd2f6b74261e44cd0bb"
 };
 
-const gchstApp=getApps().length?getApp():initializeApp(gchstFirebaseConfig,"gchstApp");
-const mySchoolApp=initializeApp(mySchoolFirebaseConfig,"mySchoolApp");
-const gchstAuth=getAuth(gchstApp);
-const mySchoolAuth=getAuth(mySchoolApp);
-const gchstDb=getFirestore(gchstApp);
-const mySchoolDb=getFirestore(mySchoolApp);
+const app=getApps().some(a=>a.name==="mySchoolLoginApp")
+  ? getApp("mySchoolLoginApp")
+  : initializeApp(MIS_CONFIG,"mySchoolLoginApp");
+const auth=getAuth(app);
+const db=getFirestore(app);
 const $=id=>document.getElementById(id);
+
+const params=new URLSearchParams(window.location.search);
+const requestedSchoolId=String(params.get("schoolId")||"").trim().toLowerCase();
 
 function message(text,error=false){
   $("message").textContent=text;
   $("message").className="message "+(error?"bad":"ok");
 }
+
+function normal(v){return String(v??"").trim().toLowerCase();}
 
 function authError(e){
   const c=e?.code||"";
@@ -203,120 +191,187 @@ function authError(e){
     "auth/invalid-email":"Please enter a valid email address.",
     "auth/user-disabled":"This Firebase account has been disabled.",
     "auth/too-many-requests":"Too many login attempts. Please wait and try again.",
-    "auth/network-request-failed":"Network error. Check your internet connection.",
-    "auth/api-key-not-valid":"Firebase API key is invalid. Check the Firebase configuration."
+    "auth/network-request-failed":"Network error. Check your internet connection."
   };
   return map[c]||e?.message||"Login failed. Please try again.";
 }
 
-function normal(v){
-  return String(v??"").trim().toLowerCase();
-}
-
-function roleValue(data){
-  return normal(data.role||data.staffRole||data.accountType);
-}
-
-/*
-  Find the school user by the Firebase Authentication UID first.
-  Email is only a fallback.
-*/
-async function findUserRecord(user){
-  const uid=user.uid;
-  const email=normal(user.email);
-
-  const byUid=await getDocs(
-    query(collection(db,"users"),where("uid","==",uid),limit(1))
-  );
-  if(!byUid.empty) return {id:byUid.docs[0].id,data:byUid.docs[0].data()};
-
-  const byAuthUid=await getDocs(
-    query(collection(db,"users"),where("authUid","==",uid),limit(1))
-  );
-  if(!byAuthUid.empty) return {id:byAuthUid.docs[0].id,data:byAuthUid.docs[0].data()};
-
-  if(email){
-    const byEmail=await getDocs(
-      query(collection(db,"users"),where("email","==",email),limit(1))
-    );
-    if(!byEmail.empty) return {id:byEmail.docs[0].id,data:byEmail.docs[0].data()};
-
-    const byAuthEmail=await getDocs(
-      query(collection(db,"users"),where("authEmail","==",email),limit(1))
-    );
-    if(!byAuthEmail.empty) return {id:byAuthEmail.docs[0].id,data:byAuthEmail.docs[0].data()};
-  }
-
-  return null;
-}
+function safe(v){return String(v??"").replace(/[&<>"']/g,m=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+}[m]));}
 
 function isInactive(data){
   const status=normal(data.status||data.accountStatus);
-  return status==="deactivated" || status==="inactive" || status==="disabled";
+  return ["deactivated","inactive","disabled","suspended"].includes(status);
+}
+
+function getRole(data){
+  return normal(data.role||data.staffRole||data.accountType);
+}
+
+function isHod(data){
+  const a=normal(data.accountType),r=normal(data.role),s=normal(data.staffRole);
+  return a==="hod"||a==="head of department"||r==="hod"||r==="head of department"||s==="hod"||s==="head of department";
+}
+
+function portalFor(data,user){
+  const a=normal(data.accountType),r=normal(data.role),s=normal(data.staffRole);
+
+  if(isHod(data)) return "hod-profile.html?uid="+encodeURIComponent(user.uid);
+  if(a==="admin"||r==="admin"||r==="administrator"||r.includes("super admin")||r.includes("system admin"||false)) return "admin.html";
+  if(a.includes("student")||r==="student"||s==="student") return "student-profile.html";
+  if(a.includes("lecturer")||r.includes("lecturer")||s.includes("lecturer")) return "lecturer-profile.html";
+  if(r==="bursary"||r.includes("bursary")||r==="finance"||r.includes("finance")) return "bursary.html";
+  if(r==="admissions officer"||r.includes("admission")) return "admissions.html";
+  if(r==="registrar"||r.includes("registrar")) return "registrar.html";
+  if(r==="collegeadmin"||r==="college admin") return "admin.html";
+  return null;
 }
 
 /*
-  HOD is deliberately checked BEFORE Lecturer.
-  This prevents an HOD record that also contains lecturer-related
-  fields from being sent to lecturer-profile.html.
+  Branding is intentionally read from schoolBranding first.
+  The Super Admin Add College form should write the same data there.
+  A fallback to schools is included for existing records, but it only
+  works when the current Firestore rules allow the lookup.
 */
-function isHodAccount(data){
-  const accountType=normal(data.accountType);
-  const role=normal(data.role);
-  const staffRole=normal(data.staffRole);
+async function loadBranding(schoolId){
+  if(!schoolId) return null;
 
-  return (
-    accountType==="hod" ||
-    accountType==="head of department" ||
-    role==="hod" ||
-    role==="head of department" ||
-    staffRole==="hod" ||
-    staffRole==="head of department"
-  );
-}
-
-/*
-  Exact portal routing.
-  HOD gets the Firebase UID in the URL so the new HOD profile
-  can load the exact account that just authenticated.
-*/
-function getPortal(data,user){
-  const accountType=normal(data.accountType);
-  const role=normal(data.role);
-  const staffRole=normal(data.staffRole);
-
-  // IMPORTANT: HOD must be checked before Lecturer.
-  if(isHodAccount(data)){
-    return "hod-profile.html?uid="+encodeURIComponent(user.uid);
+  try{
+    const snap=await getDoc(doc(db,"schoolBranding",schoolId));
+    if(snap.exists()) return snap.data();
+  }catch(e){
+    console.warn("schoolBranding lookup failed:",e);
   }
 
-  if(accountType==="admin" || role==="admin" || role==="administrator" ||
-     role.includes("super admin") || role.includes("system admin")){
-    return "admin.html";
-  }
-
-  if(accountType.includes("student") || role==="student" || staffRole==="student"){
-    return "student-profile.html";
-  }
-
-  if(accountType.includes("lecturer") || role.includes("lecturer") || staffRole.includes("lecturer")){
-    return "lecturer-profile.html";
-  }
-
-  if(role==="bursary" || role.includes("bursary") ||
-     role==="finance" || role.includes("finance")){
-    return "bursary.html";
-  }
-
-  if(role==="admissions officer" || role.includes("admission")){
-    return "admissions.html";
-  }
-
-  if(role==="registrar" || role.includes("registrar")){
-    return "registrar.html";
+  try{
+    const snap=await getDoc(doc(db,"schools",schoolId));
+    if(snap.exists()) return snap.data();
+  }catch(e){
+    console.warn("schools branding lookup failed:",e);
   }
 
   return null;
+}
+
+function applyBranding(school,schoolId){
+  const data=school||{};
+  const name=data.name||data.schoolName||data.shortName||schoolId||"College";
+  const short=data.shortName||data.schoolName||data.name||schoolId||"College";
+  const logo=data.logoUrl||data.logoURL||data.logo||data.schoolLogo||data.crestUrl||data.crestURL||"";
+  const campus=data.campusImageUrl||data.campusImageURL||data.campusImage||data.bannerUrl||data.bannerURL||"";
+  const primary=data.primaryColor||data.primaryBrandColor||data.primary||"#08783d";
+  const secondary=data.secondaryColor||data.secondaryBrandColor||data.secondary||"#0a9a4d";
+  const tagline=data.tagline||data.motto||"Secure School Management System";
+  const location=data.location||data.state||data.address||"";
+  const website=data.website||data.websiteUrl||"";
+
+  document.title=`${short} | Login`;
+  document.documentElement.style.setProperty("--green",primary);
+  document.documentElement.style.setProperty("--green2",secondary);
+
+  const photo=$("schoolPhoto");
+  const logoEl=$("schoolLogo");
+  const kicker=$("schoolKicker");
+  const title=$("schoolTitle");
+  const subtitle=$("schoolSubtitle");
+  const badge=$("schoolBadge");
+  const footer=$("schoolFooter");
+
+  kicker.textContent=name+(location?", "+location:"");
+  title.textContent=`${short} Student & Management System`;
+  subtitle.textContent=`Welcome to the official ${short} management portal. Please login with your registered email and password to continue.`;
+  badge.textContent=tagline;
+  footer.innerHTML=`<strong>${safe(short)} SMS</strong>${website?` • ${safe(website)}`:""}`;
+
+  if(logo){
+    logoEl.src=logo;
+    logoEl.alt=`${name} logo`;
+  }else{
+    logoEl.src="logo.png";
+    logoEl.alt=`${name} logo`;
+  }
+
+  if(campus){
+    photo.src=campus;
+    photo.alt=`${name} campus`;
+  }else{
+    photo.style.display="none";
+    logoEl.style.marginTop="0";
+  }
+}
+
+/* Load branding before login. This requires schoolBranding/{schoolId}
+   to be publicly readable by the Firestore rules. */
+if(requestedSchoolId){
+  const branding=await loadBranding(requestedSchoolId);
+  if(branding){
+    applyBranding(branding,requestedSchoolId);
+  }else{
+    applyBranding({name:requestedSchoolId,shortName:requestedSchoolId},requestedSchoolId);
+  }
+}else{
+  /* No schoolId: show a neutral landing state instead of silently
+     presenting one college's branding to another college. */
+  applyBranding({
+    name:"MYSCHOOL-MIS",
+    shortName:"MYSCHOOL-MIS",
+    tagline:"Multi-College Management Information System"
+  },"");
+}
+
+async function findUserRecord(user,schoolId){
+  /* New central structure: users are scoped by schoolId. */
+  try{
+    const byUid=await getDocs(query(
+      collection(db,"users"),
+      where("uid","==",user.uid),
+      where("schoolId","==",schoolId),
+      limit(1)
+    ));
+    if(!byUid.empty) return {id:byUid.docs[0].id,data:byUid.docs[0].data()};
+  }catch(e){console.warn("users UID lookup:",e);}
+
+  try{
+    const byAuthUid=await getDocs(query(
+      collection(db,"users"),
+      where("authUid","==",user.uid),
+      where("schoolId","==",schoolId),
+      limit(1)
+    ));
+    if(!byAuthUid.empty) return {id:byAuthUid.docs[0].id,data:byAuthUid.docs[0].data()};
+  }catch(e){console.warn("users authUid lookup:",e);}
+
+  try{
+    const email=normal(user.email);
+    if(email){
+      const byEmail=await getDocs(query(
+        collection(db,"users"),
+        where("email","==",email),
+        where("schoolId","==",schoolId),
+        limit(1)
+      ));
+      if(!byEmail.empty) return {id:byEmail.docs[0].id,data:byEmail.docs[0].data()};
+    }
+  }catch(e){console.warn("users email lookup:",e);}
+
+  return null;
+}
+
+async function verifyCollegeAdmin(user,schoolId){
+  if(!schoolId) return null;
+  try{
+    const snap=await getDoc(doc(db,"collegeUsers",user.uid));
+    if(!snap.exists()) return null;
+    const data=snap.data();
+    if(normal(data.role)!=="collegeadmin") return null;
+    if(normal(data.status)!=="active") return null;
+    if(String(data.schoolId||"").trim().toLowerCase()!==schoolId) return null;
+    return {id:snap.id,data};
+  }catch(e){
+    console.warn("College Admin verification:",e);
+    return null;
+  }
 }
 
 $("showPassword").onclick=()=>{
@@ -328,104 +383,108 @@ $("showPassword").onclick=()=>{
 $("forgotPassword").onclick=async e=>{
   e.preventDefault();
   const email=$("email").value.trim();
-
-  if(!email){
-    message("Enter your email address first, then select Forgot Password.",true);
-    $("email").focus();
-    return;
-  }
-
+  if(!email){message("Enter your email address first, then select Forgot Password.",true);$("email").focus();return;}
   try{
     $("forgotPassword").style.pointerEvents="none";
-    await sendPasswordResetEmail(gchstAuth,email);
+    await sendPasswordResetEmail(auth,email);
     message("Password reset instructions have been sent to your email.");
-  }catch(e){
-    console.error(e);
-    message(authError(e),true);
-  }finally{
-    setTimeout(()=>$("forgotPassword").style.pointerEvents="",2500);
-  }
+  }catch(e){message(authError(e),true);}
+  finally{setTimeout(()=>$("forgotPassword").style.pointerEvents="",2500);}
 };
 
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();
+
   const email=$("email").value.trim();
   const password=$("password").value;
+
+  if(!requestedSchoolId){
+    message("This login page needs a schoolId. Open the school's official login link.",true);
+    return;
+  }
   if(!email){message("Enter your email address.",true);return;}
   if(!password){message("Enter your password.",true);return;}
+
   $("loginBtn").disabled=true;
   $("loginBtn").textContent="LOGGING IN...";
   message("");
 
-  // NEW MYSCHOOL-MIS College Admin authentication.
   try{
-    const credential=await signInWithEmailAndPassword(mySchoolAuth,email,password);
+    const credential=await signInWithEmailAndPassword(auth,email,password);
     const user=credential.user;
-    const ref=doc(mySchoolDb,"collegeUsers",user.uid);
-    const snap=await getDoc(ref);
-    if(snap.exists()){
-      const data=snap.data();
-      const role=normal(data.role);
-      const status=normal(data.status);
-      const schoolId=String(data.schoolId||"").trim();
-      if(role==="collegeadmin" && status==="active" && schoolId){
-        sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify({
-          uid:user.uid,email:user.email||data.email||email,
-          name:data.name||data.fullName||"",role:data.role||"",
-          status:data.status||"",schoolId,loginAt:new Date().toISOString()
-        }));
-        message("Login successful. Opening your college dashboard...");
-        setTimeout(()=>window.location.href="admin.html",300);
-        return;
-      }
-      await mySchoolAuth.signOut();
-      message("This account is not configured as an active College Admin.",true);
+
+    /* College Admin uses the dedicated UID document. */
+    const collegeAdmin=await verifyCollegeAdmin(user,requestedSchoolId);
+    if(collegeAdmin){
+      const d=collegeAdmin.data;
+      sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify({
+        uid:user.uid,
+        email:user.email||d.email||email,
+        name:d.name||d.fullName||"",
+        role:"collegeAdmin",
+        status:"active",
+        schoolId:requestedSchoolId,
+        loginAt:new Date().toISOString()
+      }));
+      message("Login successful. Opening your college dashboard...");
+      setTimeout(()=>window.location.href="admin.html",250);
       return;
     }
-    await mySchoolAuth.signOut();
-    message("Login succeeded, but this account has no College Admin authorization record.",true);
-    return;
-  }catch(mySchoolError){
-    // Preserve the existing GCHST login for HOD, lecturer, student, etc.
-    try{
-      const credential=await signInWithEmailAndPassword(gchstAuth,email,password);
-      const user=credential.user;
-      const record=await findUserRecord(user);
-      if(!record){
-        await gchstAuth.signOut();
-        message("Login succeeded, but no school access record was found for this Firebase account. Please contact the administrator.",true);
-        return;
-      }
-      const data=record.data;
-      if(isInactive(data)){
-        await gchstAuth.signOut();
-        message("This account is currently deactivated. Please contact the administrator.",true);
-        return;
-      }
-      const portal=getPortal(data,user);
-      if(!portal){
-        await gchstAuth.signOut();
-        message("Your account role has not been configured for a portal yet. Please contact the administrator.",true);
-        return;
-      }
-      ["lecturerId","hodId","hodUid","hodProfileId","currentHodId","currentLecturerId"].forEach(key=>localStorage.removeItem(key));
-      sessionStorage.setItem("shtmsUser",JSON.stringify({
-        uid:user.uid,email:user.email||data.email||"",
-        name:data.name||data.fullName||data.hodName||"",
-        accountType:data.accountType||"",role:data.role||data.staffRole||"",
-        profileId:data.profileId||"",userRecordId:record.id,
-        programmeId:data.programmeId||"",programmeName:data.programmeName||"",
-        staffId:data.staffId||data.schoolId||"",loginAt:new Date().toISOString()
-      }));
-      window.location.href=portal;
-    }catch(gchstError){
-      console.error("MYSCHOOL-MIS login:",mySchoolError);
-      console.error("GCHST login:",gchstError);
-      message(authError(gchstError),true);
-    }finally{
-      $("loginBtn").disabled=false;
-      $("loginBtn").textContent="↪  LOGIN";
+
+    /* Other school roles must have BOTH the correct schoolId and role. */
+    const record=await findUserRecord(user,requestedSchoolId);
+    if(!record){
+      await signOut(auth);
+      message("This account is not registered for this college. Please use the correct school login link.",true);
+      return;
     }
+
+    const data=record.data;
+    const storedSchoolId=String(data.schoolId||data.collegeId||"").trim().toLowerCase();
+    if(storedSchoolId!==requestedSchoolId){
+      await signOut(auth);
+      message("This account belongs to a different college and cannot use this portal.",true);
+      return;
+    }
+
+    if(isInactive(data)){
+      await signOut(auth);
+      message("This account is currently deactivated. Please contact the administrator.",true);
+      return;
+    }
+
+    const portal=portalFor(data,user);
+    if(!portal){
+      await signOut(auth);
+      message("Your account role has not been configured for a portal yet. Please contact the administrator.",true);
+      return;
+    }
+
+    ["lecturerId","hodId","hodUid","hodProfileId","currentHodId","currentLecturerId"].forEach(k=>localStorage.removeItem(k));
+
+    sessionStorage.setItem("shtmsUser",JSON.stringify({
+      uid:user.uid,
+      email:user.email||data.email||"",
+      name:data.name||data.fullName||data.hodName||"",
+      accountType:data.accountType||"",
+      role:data.role||data.staffRole||"",
+      profileId:data.profileId||"",
+      userRecordId:record.id,
+      programmeId:data.programmeId||"",
+      programmeName:data.programmeName||"",
+      staffId:data.staffId||"",
+      schoolId:requestedSchoolId,
+      loginAt:new Date().toISOString()
+    }));
+
+    window.location.href=portal;
+
+  }catch(e){
+    console.error(e);
+    message(authError(e),true);
+  }finally{
+    $("loginBtn").disabled=false;
+    $("loginBtn").textContent="↪  LOGIN";
   }
 });
 </script>
