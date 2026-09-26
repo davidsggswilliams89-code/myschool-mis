@@ -174,45 +174,29 @@ const $=id=>document.getElementById(id);
 const params=new URLSearchParams(window.location.search);
 
 /*
-  Transitional default for the current test college.
-  A school-specific URL always overrides this value:
-  login.html?schoolId=test-college
-  login.html?schoolId=another-college
-*/
-const DEFAULT_SCHOOL_ID="test-college";
-
-/*
-  SCHOOL SELECTION
-  ----------------
-  A school-specific login URL must contain:
+  =========================================================
+  MYSCHOOL-MIS CENTRAL LOGIN
+  =========================================================
+  IMPORTANT:
+  - This page is ALWAYS the permanent MYSCHOOL-MIS login page.
+  - It does NOT change its branding before login.
+  - A school-specific link may still use:
       login.html?schoolId=test-college
-
-  The URL always has priority. This prevents a previous college selection
-  from accidentally replacing the college selected by the current link.
+  - If no schoolId is supplied, the signed-in Firebase account
+    is used to determine the user's schoolId after authentication.
+  - The schoolId is then carried into the correct portal URL.
 */
+
 const urlSchoolId=String(
   params.get("schoolId") || params.get("collegeId") || params.get("school") || ""
 ).trim().toLowerCase();
 
-const savedSchoolId=String(
-  localStorage.getItem("mySchoolLastSchoolId") || ""
-).trim().toLowerCase();
-
-const requestedSchoolId=urlSchoolId || savedSchoolId || DEFAULT_SCHOOL_ID;
-
-/* Save only after a valid school selection has been resolved. */
-if(requestedSchoolId){
-  localStorage.setItem("mySchoolLastSchoolId",requestedSchoolId);
-}
-
 /*
-  Helper used by future portal links. It guarantees that a portal returning
-  to this login page keeps the same schoolId instead of opening a generic
-  MYSCHOOL-MIS login and creating a redirect loop.
+  Do not use localStorage to select a school on the central login page.
+  This prevents an old college selection from changing the login page
+  or creating a redirect/branding loop.
 */
-function schoolLoginUrl(){
-  return `login.html?schoolId=${encodeURIComponent(requestedSchoolId)}`;
-}
+const requestedSchoolId=urlSchoolId;
 
 function message(text,error=false){
   $("message").textContent=text;
@@ -236,10 +220,6 @@ function authError(e){
   return map[c]||e?.message||"Login failed. Please try again.";
 }
 
-function safe(v){return String(v??"").replace(/[&<>"']/g,m=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
-}[m]));}
-
 function isInactive(data){
   const status=normal(data.status||data.accountStatus);
   return ["deactivated","inactive","disabled","suspended"].includes(status);
@@ -251,14 +231,22 @@ function getRole(data){
 
 function isHod(data){
   const a=normal(data.accountType),r=normal(data.role),s=normal(data.staffRole);
-  return a==="hod"||a==="head of department"||r==="hod"||r==="head of department"||s==="hod"||s==="head of department";
+  return a==="hod"||a==="head of department"||
+         r==="hod"||r==="head of department"||
+         s==="hod"||s==="head of department";
 }
 
 function portalFor(data,user){
   const a=normal(data.accountType),r=normal(data.role),s=normal(data.staffRole);
 
   if(isHod(data)) return "hod-profile.html?uid="+encodeURIComponent(user.uid);
-  if(a==="admin"||r==="admin"||r==="administrator"||r.includes("super admin")||r.includes("system admin"||false)) return "admin.html";
+  if(
+    a==="admin" ||
+    r==="admin" ||
+    r==="administrator" ||
+    r.includes("super admin") ||
+    r.includes("system admin")
+  ) return "admin.html";
   if(a.includes("student")||r==="student"||s==="student") return "student-profile.html";
   if(a.includes("lecturer")||r.includes("lecturer")||s.includes("lecturer")) return "lecturer-profile.html";
   if(r==="bursary"||r.includes("bursary")||r==="finance"||r.includes("finance")) return "bursary.html";
@@ -269,102 +257,11 @@ function portalFor(data,user){
 }
 
 /*
-  Branding is intentionally read from schoolBranding first.
-  The Super Admin Add College form should write the same data there.
-  A fallback to schools is included for existing records, but it only
-  works when the current Firestore rules allow the lookup.
+  Find a user inside one specific college.
 */
-async function loadBranding(schoolId){
+async function findUserRecord(user,schoolId){
   if(!schoolId) return null;
 
-  try{
-    const snap=await getDoc(doc(db,"schoolBranding",schoolId));
-    if(snap.exists()) return snap.data();
-  }catch(e){
-    console.warn("schoolBranding lookup failed:",e);
-  }
-
-  try{
-    const snap=await getDoc(doc(db,"schools",schoolId));
-    if(snap.exists()) return snap.data();
-  }catch(e){
-    console.warn("schools branding lookup failed:",e);
-  }
-
-  return null;
-}
-
-function applyBranding(school,schoolId){
-  const data=school||{};
-  const name=data.name||data.schoolName||data.shortName||schoolId||"College";
-  const short=data.shortName||data.schoolName||data.name||schoolId||"College";
-  const logo=data.logoUrl||data.logoURL||data.logo||data.schoolLogo||data.crestUrl||data.crestURL||"";
-  const campus=data.campusImageUrl||data.campusImageURL||data.campusImage||data.bannerUrl||data.bannerURL||"";
-  const primary=data.primaryColor||data.primaryBrandColor||data.primary||"#08783d";
-  const secondary=data.secondaryColor||data.secondaryBrandColor||data.secondary||"#0a9a4d";
-  const tagline=data.tagline||data.motto||"Secure School Management System";
-  const location=data.location||data.state||data.address||"";
-  const website=data.website||data.websiteUrl||"";
-
-  document.title=`${short} | Login`;
-  document.documentElement.style.setProperty("--green",primary);
-  document.documentElement.style.setProperty("--green2",secondary);
-
-  const photo=$("schoolPhoto");
-  const logoEl=$("schoolLogo");
-  const kicker=$("schoolKicker");
-  const title=$("schoolTitle");
-  const subtitle=$("schoolSubtitle");
-  const badge=$("schoolBadge");
-  const footer=$("schoolFooter");
-
-  kicker.textContent=name+(location?", "+location:"");
-  title.textContent=`${short} Student & Management System`;
-  subtitle.textContent=`Welcome to the official ${short} management portal. Please login with your registered email and password to continue.`;
-  badge.textContent=tagline;
-  footer.innerHTML=`<strong>${safe(short)} SMS</strong>${website?` • ${safe(website)}`:""}`;
-  const systemFooter=$("schoolSystemFooter");
-  if(systemFooter) systemFooter.textContent=`${short} Student & Management System`;
-
-  if(logo){
-    logoEl.src=logo;
-    logoEl.alt=`${name} logo`;
-  }else{
-    logoEl.src="logo.png";
-    logoEl.alt=`${name} logo`;
-  }
-
-  if(campus){
-    photo.src=campus;
-    photo.alt=`${name} campus`;
-  }else{
-    photo.style.display="none";
-    logoEl.style.marginTop="0";
-  }
-}
-
-/* Load branding before login. This requires schoolBranding/{schoolId}
-   to be publicly readable by the Firestore rules. */
-if(requestedSchoolId){
-  const branding=await loadBranding(requestedSchoolId);
-
-  if(branding){
-    applyBranding(branding,requestedSchoolId);
-  }else{
-    /*
-      Keep the selected school identity visible even if branding has not
-      been created yet. Do NOT redirect to another login page.
-    */
-    applyBranding({
-      name:requestedSchoolId,
-      shortName:requestedSchoolId,
-      tagline:"Secure School Management System"
-    },requestedSchoolId);
-  }
-}
-
-async function findUserRecord(user,schoolId){
-  /* New central structure: users are scoped by schoolId. */
   try{
     const byUid=await getDocs(query(
       collection(db,"users"),
@@ -401,38 +298,128 @@ async function findUserRecord(user,schoolId){
   return null;
 }
 
-async function verifyCollegeAdmin(user,schoolId){
-  if(!schoolId) return null;
+/*
+  Find the user's record without a school filter.
+  This is used only when the permanent central login URL has no
+  ?schoolId=... parameter. Firebase Authentication already identifies
+  the account by its UID/email, then Firestore supplies its schoolId.
+*/
+async function findUserRecordAnySchool(user){
+  try{
+    const byUid=await getDocs(query(
+      collection(db,"users"),
+      where("uid","==",user.uid),
+      limit(1)
+    ));
+    if(!byUid.empty) return {id:byUid.docs[0].id,data:byUid.docs[0].data()};
+  }catch(e){console.warn("global users UID lookup:",e);}
+
+  try{
+    const byAuthUid=await getDocs(query(
+      collection(db,"users"),
+      where("authUid","==",user.uid),
+      limit(1)
+    ));
+    if(!byAuthUid.empty) return {id:byAuthUid.docs[0].id,data:byAuthUid.docs[0].data()};
+  }catch(e){console.warn("global users authUid lookup:",e);}
+
+  try{
+    const email=normal(user.email);
+    if(email){
+      const byEmail=await getDocs(query(
+        collection(db,"users"),
+        where("email","==",email),
+        limit(1)
+      ));
+      if(!byEmail.empty) return {id:byEmail.docs[0].id,data:byEmail.docs[0].data()};
+    }
+  }catch(e){console.warn("global users email lookup:",e);}
+
+  return null;
+}
+
+/*
+  College Admin accounts live in collegeUsers/{uid}.
+  If a schoolId was supplied in the URL, it must match.
+  If no schoolId was supplied, the account's own schoolId is used.
+*/
+async function verifyCollegeAdmin(user,expectedSchoolId=""){
   try{
     const snap=await getDoc(doc(db,"collegeUsers",user.uid));
     if(!snap.exists()) return null;
+
     const data=snap.data();
     if(normal(data.role)!=="collegeadmin") return null;
     if(normal(data.status)!=="active") return null;
-    if(String(data.schoolId||"").trim().toLowerCase()!==schoolId) return null;
-    return {id:snap.id,data};
+
+    const accountSchoolId=normal(data.schoolId||data.collegeId||"");
+    if(!accountSchoolId) return null;
+
+    if(expectedSchoolId && accountSchoolId!==expectedSchoolId){
+      return null;
+    }
+
+    return {
+      id:snap.id,
+      data,
+      schoolId:accountSchoolId
+    };
   }catch(e){
     console.warn("College Admin verification:",e);
     return null;
   }
 }
 
+/*
+  The central login page intentionally has NO dynamic school branding.
+  It remains MYSCHOOL-MIS before login and after refresh.
+*/
+document.title="MYSCHOOL-MIS | Login";
+$("schoolKicker").textContent="MYSCHOOL-MIS";
+$("schoolTitle").textContent="MYSCHOOL-MIS Student & Management System";
+$("schoolSubtitle").textContent=
+  "Welcome to the official school management portal. Please login with your registered email and password to continue.";
+$("schoolBadge").textContent="Multi-College Management Information System";
+$("schoolFooter").innerHTML="<strong>MYSCHOOL-MIS</strong> • Multi-College Management Information System";
+$("schoolSystemFooter").textContent="Student & Management System";
+
+/*
+  The central page does not need a school photo.
+  Hiding it also prevents an old college campus image from appearing
+  while the user is still on the central login page.
+*/
+$("schoolPhoto").style.display="none";
+$("schoolLogo").src="logo.png";
+$("schoolLogo").alt="MYSCHOOL-MIS logo";
+$("schoolLogo").style.marginTop="0";
+
+/* Password visibility */
 $("showPassword").onclick=()=>{
   const hidden=$("password").type==="password";
   $("password").type=hidden?"text":"password";
   $("showPassword").textContent=hidden?"Hide":"Show";
 };
 
+/* Password reset stays on the permanent central login page. */
 $("forgotPassword").onclick=async e=>{
   e.preventDefault();
   const email=$("email").value.trim();
-  if(!email){message("Enter your email address first, then select Forgot Password.",true);$("email").focus();return;}
+
+  if(!email){
+    message("Enter your email address first, then select Forgot Password.",true);
+    $("email").focus();
+    return;
+  }
+
   try{
     $("forgotPassword").style.pointerEvents="none";
     await sendPasswordResetEmail(auth,email);
     message("Password reset instructions have been sent to your email.");
-  }catch(e){message(authError(e),true);}
-  finally{setTimeout(()=>$("forgotPassword").style.pointerEvents="",2500);}
+  }catch(e){
+    message(authError(e),true);
+  }finally{
+    setTimeout(()=>$("forgotPassword").style.pointerEvents="",2500);
+  }
 };
 
 $("loginForm").addEventListener("submit",async e=>{
@@ -441,50 +428,101 @@ $("loginForm").addEventListener("submit",async e=>{
   const email=$("email").value.trim();
   const password=$("password").value;
 
-  if(!email){message("Enter your email address.",true);return;}
-  if(!password){message("Enter your password.",true);return;}
+  if(!email){
+    message("Enter your email address.",true);
+    return;
+  }
+
+  if(!password){
+    message("Enter your password.",true);
+    return;
+  }
 
   $("loginBtn").disabled=true;
   $("loginBtn").textContent="LOGGING IN...";
   message("");
 
   try{
+    /*
+      1. Authenticate the Firebase account.
+      2. Determine the permanent schoolId.
+      3. Verify the account belongs to that school.
+      4. Redirect directly to its correct portal.
+    */
     const credential=await signInWithEmailAndPassword(auth,email,password);
     const user=credential.user;
 
-    /* College Admin uses the dedicated UID document. */
-    const collegeAdmin=await verifyCollegeAdmin(user,requestedSchoolId);
+    let schoolId=requestedSchoolId;
+
+    /* College Admin */
+    const collegeAdmin=await verifyCollegeAdmin(user,schoolId);
+
     if(collegeAdmin){
+      schoolId=collegeAdmin.schoolId;
       const d=collegeAdmin.data;
+
       sessionStorage.setItem("mySchoolCollegeAdmin",JSON.stringify({
         uid:user.uid,
         email:user.email||d.email||email,
         name:d.name||d.fullName||"",
         role:"collegeAdmin",
         status:"active",
-        schoolId:requestedSchoolId,
+        schoolId,
         loginAt:new Date().toISOString()
       }));
-      message("Login successful. Opening your college dashboard...");
-      setTimeout(()=>window.location.href=`admin.html?schoolId=${encodeURIComponent(requestedSchoolId)}`,250);
+
+      /*
+        replace() prevents the browser Back button from returning to
+        an intermediate branded login page and starting a loop.
+      */
+      window.location.replace(`admin.html?schoolId=${encodeURIComponent(schoolId)}`);
       return;
     }
 
-    /* Other school roles must have BOTH the correct schoolId and role. */
-    const record=await findUserRecord(user,requestedSchoolId);
+    /*
+      Other roles:
+      - If the URL supplied schoolId, search only inside that school.
+      - If this is the permanent central login URL, find the user's
+        own record first, then obtain its schoolId.
+    */
+    const record=schoolId
+      ? await findUserRecord(user,schoolId)
+      : await findUserRecordAnySchool(user);
+
     if(!record){
       await signOut(auth);
-      message("This account is not registered for this college. Please use the correct school login link.",true);
+      message(
+        schoolId
+          ? "This account is not registered for this college. Please use the correct school login link."
+          : "This account is not registered in the school management system.",
+        true
+      );
       return;
     }
 
     const data=record.data;
-    const storedSchoolId=String(data.schoolId||data.collegeId||"").trim().toLowerCase();
-    if(storedSchoolId!==requestedSchoolId){
+    const storedSchoolId=normal(data.schoolId||data.collegeId||"");
+
+    if(!storedSchoolId){
+      await signOut(auth);
+      message("Your account does not have a schoolId. Please contact the administrator.",true);
+      return;
+    }
+
+    /*
+      If a school-specific URL was used, the account must belong to it.
+    */
+    if(schoolId && storedSchoolId!==schoolId){
       await signOut(auth);
       message("This account belongs to a different college and cannot use this portal.",true);
       return;
     }
+
+    /*
+      For the central login URL, the account's own schoolId becomes
+      the authoritative school context.
+    */
+    schoolId=storedSchoolId;
 
     if(isInactive(data)){
       await signOut(auth);
@@ -493,13 +531,18 @@ $("loginForm").addEventListener("submit",async e=>{
     }
 
     const portal=portalFor(data,user);
+
     if(!portal){
       await signOut(auth);
-      message("Your account role has not been configured for a portal yet. Please contact the administrator.",true);
+      message(
+        "Your account role has not been configured for a portal yet. Please contact the administrator.",
+        true
+      );
       return;
     }
 
-    ["lecturerId","hodId","hodUid","hodProfileId","currentHodId","currentLecturerId"].forEach(k=>localStorage.removeItem(k));
+    ["lecturerId","hodId","hodUid","hodProfileId","currentHodId","currentLecturerId"]
+      .forEach(k=>localStorage.removeItem(k));
 
     sessionStorage.setItem("shtmsUser",JSON.stringify({
       uid:user.uid,
@@ -512,14 +555,14 @@ $("loginForm").addEventListener("submit",async e=>{
       programmeId:data.programmeId||"",
       programmeName:data.programmeName||"",
       staffId:data.staffId||"",
-      schoolId:requestedSchoolId,
+      schoolId,
       loginAt:new Date().toISOString()
     }));
 
-    {
-      const separator=portal.includes("?")?"&":"?";
-      window.location.href=`${portal}${separator}schoolId=${encodeURIComponent(requestedSchoolId)}`;
-    }
+    const separator=portal.includes("?")?"&":"?";
+    window.location.replace(
+      `${portal}${separator}schoolId=${encodeURIComponent(schoolId)}`
+    );
 
   }catch(e){
     console.error(e);
