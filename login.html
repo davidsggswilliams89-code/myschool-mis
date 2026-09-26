@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GCHST | Login</title>
+<title>MYSCHOOL-MIS | Login</title>
 <style>
 :root{
   --green:#08783d;
@@ -180,12 +180,39 @@ const params=new URLSearchParams(window.location.search);
   login.html?schoolId=another-college
 */
 const DEFAULT_SCHOOL_ID="test-college";
-const urlSchoolId=String(params.get("schoolId")||"").trim().toLowerCase();
-const savedSchoolId=String(localStorage.getItem("mySchoolLastSchoolId")||"").trim().toLowerCase();
+
+/*
+  SCHOOL SELECTION
+  ----------------
+  A school-specific login URL must contain:
+      index.html?schoolId=test-college
+
+  The URL always has priority. This prevents a previous college selection
+  from accidentally replacing the college selected by the current link.
+*/
+const urlSchoolId=String(
+  params.get("schoolId") || params.get("collegeId") || params.get("school") || ""
+).trim().toLowerCase();
+
+const savedSchoolId=String(
+  localStorage.getItem("mySchoolLastSchoolId") || ""
+).trim().toLowerCase();
+
 const requestedSchoolId=urlSchoolId || savedSchoolId || DEFAULT_SCHOOL_ID;
 
-/* Keep the selected college for the next visit. */
-localStorage.setItem("mySchoolLastSchoolId",requestedSchoolId);
+/* Save only after a valid school selection has been resolved. */
+if(requestedSchoolId){
+  localStorage.setItem("mySchoolLastSchoolId",requestedSchoolId);
+}
+
+/*
+  Helper used by future portal links. It guarantees that a portal returning
+  to this login page keeps the same schoolId instead of opening a generic
+  MYSCHOOL-MIS login and creating a redirect loop.
+*/
+function schoolLoginUrl(){
+  return `index.html?schoolId=${encodeURIComponent(requestedSchoolId)}`;
+}
 
 function message(text,error=false){
   $("message").textContent=text;
@@ -296,6 +323,7 @@ function applyBranding(school,schoolId){
   subtitle.textContent=`Welcome to the official ${short} management portal. Please login with your registered email and password to continue.`;
   badge.textContent=tagline;
   footer.innerHTML=`<strong>${safe(short)} SMS</strong>${website?` • ${safe(website)}`:""}`;
+  const systemFooter=$("schoolSystemFooter");
   if(systemFooter) systemFooter.textContent=`${short} Student & Management System`;
 
   if(logo){
@@ -319,17 +347,20 @@ function applyBranding(school,schoolId){
    to be publicly readable by the Firestore rules. */
 if(requestedSchoolId){
   const branding=await loadBranding(requestedSchoolId);
+
   if(branding){
     applyBranding(branding,requestedSchoolId);
   }else{
-    applyBranding({name:requestedSchoolId,shortName:requestedSchoolId},requestedSchoolId);
+    /*
+      Keep the selected school identity visible even if branding has not
+      been created yet. Do NOT redirect to another login page.
+    */
+    applyBranding({
+      name:requestedSchoolId,
+      shortName:requestedSchoolId,
+      tagline:"Secure School Management System"
+    },requestedSchoolId);
   }
-}else{
-  applyBranding({
-    name:"MYSCHOOL-MIS",
-    shortName:"MYSCHOOL-MIS",
-    tagline:"Multi-College Management Information System"
-  },requestedSchoolId);
 }
 
 async function findUserRecord(user,schoolId){
@@ -435,7 +466,7 @@ $("loginForm").addEventListener("submit",async e=>{
         loginAt:new Date().toISOString()
       }));
       message("Login successful. Opening your college dashboard...");
-      setTimeout(()=>window.location.href="admin.html",250);
+      setTimeout(()=>window.location.href=`admin.html?schoolId=${encodeURIComponent(requestedSchoolId)}`,250);
       return;
     }
 
@@ -485,7 +516,10 @@ $("loginForm").addEventListener("submit",async e=>{
       loginAt:new Date().toISOString()
     }));
 
-    window.location.href=portal;
+    {
+      const separator=portal.includes("?")?"&":"?";
+      window.location.href=`${portal}${separator}schoolId=${encodeURIComponent(requestedSchoolId)}`;
+    }
 
   }catch(e){
     console.error(e);
