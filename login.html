@@ -185,7 +185,7 @@ const DEFAULT_SCHOOL_ID="test-college";
   SCHOOL SELECTION
   ----------------
   A school-specific login URL must contain:
-      index.html?schoolId=test-college
+      login.html?schoolId=test-college
 
   The URL always has priority. This prevents a previous college selection
   from accidentally replacing the college selected by the current link.
@@ -211,7 +211,7 @@ if(requestedSchoolId){
   MYSCHOOL-MIS login and creating a redirect loop.
 */
 function schoolLoginUrl(){
-  return `index.html?schoolId=${encodeURIComponent(requestedSchoolId)}`;
+  return `login.html?schoolId=${encodeURIComponent(requestedSchoolId)}`;
 }
 
 function message(text,error=false){
