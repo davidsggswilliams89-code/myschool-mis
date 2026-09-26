@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Platform Super Admin | MYSCHOOL-MIS</title>
+<style>
+:root{--green:#087b43;--green2:#0b8b4b;--dark:#075c38;--bg:#f3f7f4;--card:#fff;--text:#173f2d;--muted:#6d8177;--border:#dfeae4;--danger:#b42318}
+*{box-sizing:border-box}html,body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#075d35,#0b8b4b)}
+.login-card{width:min(100%,430px);background:#fff;border-radius:20px;padding:25px;box-shadow:0 18px 50px rgba(0,0,0,.2)}
+.login-brand{text-align:center;margin-bottom:20px}.login-logo{width:65px;height:65px;margin:auto;border-radius:18px;background:#eaf6ef;color:var(--green);display:grid;place-items:center;font-size:25px;font-weight:900}
+.login-brand h1{margin:13px 0 4px;font-size:24px}.login-brand p{margin:0;color:var(--muted);font-size:12px}.field{margin-bottom:13px}.field label{display:block;font-size:12px;font-weight:900;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;border:1px solid #cddbd4;border-radius:10px;padding:11px;background:#fff;color:var(--text);outline:none}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;transition:.15s}.btn:hover{transform:translateY(-1px)}
+.btn-light{background:#fff;color:var(--green)}.btn-green{background:var(--green);color:#fff}.btn-outline{background:#fff;color:var(--green);border:1px solid #b9d8c8}.btn-muted{background:#eef4f0;color:#36594a}
+.notice{padding:11px 13px;border-radius:10px;font-size:12px;margin-bottom:13px}.notice.info{background:#edf7f2;color:#276048}.notice.error{background:#fff0ef;color:#9d2119}
+.app{min-height:100vh}.header{background:linear-gradient(135deg,var(--dark),var(--green2));color:#fff;padding:18px 22px;position:sticky;top:0;z-index:20;box-shadow:0 3px 12px rgba(0,0,0,.12)}
+.header-inner{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:48px;height:48px;border-radius:14px;background:#fff;color:var(--green);display:grid;place-items:center;font-weight:900;font-size:19px}.brand strong{display:block;font-size:20px}.brand span{display:block;font-size:11px;opacity:.8;margin-top:3px}
+.userbox{display:flex;align-items:center;gap:10px}.userbox small{opacity:.85}.layout{max-width:1200px;margin:auto;display:grid;grid-template-columns:235px 1fr;gap:20px;padding:20px}
+.sidebar{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;height:max-content;position:sticky;top:88px}
+.navbtn{width:100%;border:0;background:transparent;text-align:left;padding:12px;border-radius:10px;color:var(--text);font-weight:800;margin:2px 0}.navbtn:hover,.navbtn.active{background:#eaf6ef;color:var(--green)}.navbtn .icon{display:inline-block;width:27px}
+main{min-width:0}.page-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.page-title h1{margin:0;font-size:26px}.page-title p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(20,70,45,.04)}
+.stat .label{font-size:12px;color:var(--muted);font-weight:800}.stat .num{font-size:29px;font-weight:900;margin-top:7px}.stat .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-top:16px;box-shadow:0 2px 8px rgba(20,70,45,.04)}.card h2{font-size:17px;margin:0 0 13px}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:680px}th,td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.4px}
+.status{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900}.status.active{background:#e7f7ed;color:#087b43}.status.suspended{background:#fff0ef;color:#b42318}.actions{display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:30px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field.full{grid-column:1/-1}.help{font-size:11px;color:var(--muted);margin-top:5px}.upload-box{border:1px dashed #b9d8c8;border-radius:12px;padding:12px;background:#f7fbf8}.upload-preview{display:none;width:90px;height:90px;object-fit:cover;border-radius:12px;margin-top:8px;border:1px solid #dfeae4}.color-row{display:flex;gap:10px;align-items:center}.color-row input[type=color]{width:58px;height:44px;padding:3px;border:1px solid #cddbd4;border-radius:10px;background:#fff}.edit-badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eaf6ef;color:var(--green);font-size:10px;font-weight:900}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}.toast{position:fixed;right:18px;bottom:18px;z-index:50;background:#173f2d;color:#fff;padding:12px 15px;border-radius:10px;display:none;box-shadow:0 8px 25px rgba(0,0,0,.2);font-size:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow:auto;gap:5px}.navbtn{min-width:max-content;width:auto}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.header{padding:13px}.header-inner{align-items:flex-start}.userbox small{display:none}.layout{padding:12px}.grid{grid-template-columns:1fr 1fr;gap:9px}.stat{padding:14px}.stat .num{font-size:24px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.page-title{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login">
+<div class="login-card">
+<div class="login-brand"><div class="login-logo">MIS</div><h1>MYSCHOOL-MIS</h1><p>Platform Super Administrator</p></div>
+<div id="loginError" class="notice error hidden"></div>
+<form id="loginForm">
+<div class="field"><label>Super Admin Email</label><input id="loginEmail" type="email" required autocomplete="username"></div>
+<div class="field"><label>Password</label><input id="loginPassword" type="password" required autocomplete="current-password"></div>
+<button class="btn btn-green" style="width:100%" type="submit">Sign In</button>
+</form>
+<p class="help" style="text-align:center;margin-top:14px">Access is restricted to the Platform Super Admin account.</p>
+</div>
+</div>
+
+<div id="appView" class="app hidden">
+<header class="header"><div class="header-inner">
+<div class="brand"><div class="brand-logo">MIS</div><div><strong>MYSCHOOL-MIS</strong><span>Multi-College Management Information System</span></div></div>
+<div class="userbox"><small id="adminEmail"></small><button id="logoutBtn" class="btn btn-light">Logout</button></div>
+</div></header>
+<div class="layout">
+<aside class="sidebar">
+<button class="navbtn active" data-page="dashboard"><span class="icon">📊</span>Dashboard</button>
+<button class="navbtn" data-page="colleges"><span class="icon">🏫</span>Colleges</button>
+<button class="navbtn" data-page="addCollege"><span class="icon">➕</span>Add College</button>
+<button class="navbtn" data-page="security"><span class="icon">🔐</span>Security</button>
+<button class="navbtn" data-page="audit"><span class="icon">📋</span>Audit Logs</button>
+</aside>
+
+<main>
+<section id="dashboardPage" class="page">
+<div class="page-title"><div><h1>Platform Dashboard</h1><p>Manage colleges connected to MYSCHOOL-MIS.</p></div><button class="btn btn-green" onclick="showAddCollege()">+ Add College</button></div>
+<div class="grid">
+<div class="stat"><div class="label">TOTAL COLLEGES</div><div id="statColleges" class="num">0</div><div class="sub">Registered on platform</div></div>
+<div class="stat"><div class="label">ACTIVE COLLEGES</div><div id="statActive" class="num">0</div><div class="sub">Currently enabled</div></div>
+<div class="stat"><div class="label">SUSPENDED</div><div id="statSuspended" class="num">0</div><div class="sub">Currently disabled</div></div>
+<div class="stat"><div class="label">TARGET STUDENTS</div><div class="num">5,000</div><div class="sub">Initial platform target</div></div>
+</div>
+<div class="card"><h2>Recently Added Colleges</h2><div id="recentColleges" class="table-wrap"></div></div>
+</section>
+
+<section id="collegesPage" class="page hidden">
+<div class="page-title"><div><h1>Colleges</h1><p>Each college is isolated by its permanent College ID.</p></div><button class="btn btn-green" onclick="showAddCollege()">+ Add College</button></div>
+<div class="card"><div id="collegeTable" class="table-wrap"></div></div>
+</section>
+
+<section id="addCollegePage" class="page hidden">
+<div class="page-title"><div><h1 id="collegeFormTitle">Add New College</h1><p id="collegeFormSubtitle">Create the college profile, branding and administrator details.</p></div></div>
+<div class="card">
+<div class="notice info">Branding images are uploaded to Cloudinary and their secure URLs are stored in the college Firestore record. The permanent College ID remains the document ID.</div>
+<form id="collegeForm">
+<input id="editingSchoolId" type="hidden">
+<h2>College Information</h2>
+<div class="form-grid">
+<div class="field full"><label>College Name *</label><input id="collegeName" required placeholder="e.g. Gusau College of Health Sciences and Technology"></div>
+<div class="field"><label>Short Name *</label><input id="shortName" required placeholder="GCHST" maxlength="30"></div>
+<div class="field"><label>College ID *</label><input id="schoolId" required placeholder="gchst" maxlength="40" pattern="[a-z0-9-]+" title="Use lowercase letters, numbers and hyphens only"></div>
+<div class="field"><label>State *</label><input id="state" required placeholder="Zamfara"></div>
+<div class="field"><label>Location / City</label><input id="location" placeholder="Gusau"></div>
+<div class="field"><label>Official Email</label><input id="collegeEmail" type="email" placeholder="info@college.edu.ng"></div>
+<div class="field"><label>Phone</label><input id="phone" placeholder="+234..."></div>
+<div class="field full"><label>Address</label><textarea id="address" rows="2" placeholder="College address"></textarea></div>
+<div class="field"><label>Website</label><input id="website" type="url" placeholder="https://..."></div>
+<div class="field"><label>Status</label><select id="status"><option value="active">Active</option><option value="suspended">Suspended</option></select></div>
+<div class="field full"><label>School Tagline / Motto</label><input id="tagline" placeholder="Quality Education • Practical Training • Professional Excellence"></div>
+</div>
+
+<h2 style="margin-top:24px">School Branding</h2>
+<div class="form-grid">
+<div class="field"><label>School Logo</label><div class="upload-box"><input id="logoFile" type="file" accept="image/*"><div class="help">PNG/JPG/WebP recommended. The uploaded URL is saved as <b>logoUrl</b>.</div><img id="logoPreview" class="upload-preview" alt="Logo preview"></div></div>
+<div class="field"><label>Campus Image</label><div class="upload-box"><input id="campusFile" type="file" accept="image/*"><div class="help">Recommended for the college portal header. Saved as <b>campusImageUrl</b>.</div><img id="campusPreview" class="upload-preview" alt="Campus preview"></div></div>
+<div class="field"><label>Primary Brand Color</label><div class="color-row"><input id="primaryColor" type="color" value="#087b43"><input id="primaryColorText" value="#087b43" maxlength="7" pattern="^#[0-9a-fA-F]{6}$"></div></div>
+<div class="field"><label>Secondary / Dark Color</label><div class="color-row"><input id="secondaryColor" type="color" value="#075c38"><input id="secondaryColorText" value="#075c38" maxlength="7" pattern="^#[0-9a-fA-F]{6}$"></div></div>
+</div>
+
+<h2 style="margin-top:24px">College Administrator</h2>
+<div class="form-grid">
+<div class="field"><label>Full Name *</label><input id="adminName" required></div>
+<div class="field"><label>Administrator Email *</label><input id="adminEmailInput" type="email" required></div>
+<div class="field full"><label>Temporary Password</label><input id="tempPassword" type="text" minlength="8" placeholder="Do not use this field for production account creation"></div>
+</div>
+<div class="form-actions"><button type="button" class="btn btn-muted" onclick="showPage('colleges')">Cancel</button><button id="collegeSubmitBtn" type="submit" class="btn btn-green">Create College</button></div>
+</form>
+</div>
+</section>
+
+<section id="securityPage" class="page hidden">
+<div class="page-title"><div><h1>Security</h1><p>Platform-level security guidance.</p></div></div>
+<div class="card"><h2>Required production controls</h2><ul style="line-height:1.8;font-size:13px">
+<li>Firebase Authentication for every private user.</li><li>Platform Super Admin role enforced by Firestore Security Rules.</li><li>Every college-specific record carries a permanent <b>schoolId</b>.</li><li>College Admins can access only their own school's data.</li><li>Never place Firebase Admin SDK service-account secrets in this HTML.</li><li>Use a trusted backend/Admin SDK to create privileged user accounts.</li><li>Keep audit records for important platform actions.</li>
+</ul></div>
+</section>
+
+<section id="auditPage" class="page hidden">
+<div class="page-title"><div><h1>Audit Logs</h1><p>Platform actions recorded for accountability.</p></div></div>
+<div class="card"><div id="auditTable" class="table-wrap"></div></div>
+</section>
+</main>
+</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {getFirestore,collection,addDoc,doc,setDoc,getDocs,getDoc,query,orderBy,limit,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyAas90xxMhc-jsdlvWiTEZJFmVunlY3dJM",
+authDomain:"myschool-mis.firebaseapp.com",
+projectId:"myschool-mis",
+storageBucket:"myschool-mis.firebasestorage.app",
+messagingSenderId:"6249445090",
+appId:"1:6249445090:web:7f2dd2f6b74261e44cd0bb"
+};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const toast=m=>{const e=$("toast");e.textContent=m;e.style.display="block";setTimeout(()=>e.style.display="none",2600)};
+
+window.showPage=page=>{
+document.querySelectorAll("main .page").forEach(x=>x.classList.add("hidden"));
+$(page+"Page").classList.remove("hidden");
+document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+if(page==="colleges"||page==="dashboard")loadColleges();
+if(page==="audit")loadAudit();
+};
+document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+
+const syncColor=(picker,text)=>{
+  picker.addEventListener("input",()=>{text.value=picker.value.toUpperCase();});
+  text.addEventListener("input",()=>{if(/^#[0-9a-fA-F]{6}$/.test(text.value.trim())) picker.value=text.value.trim();});
+};
+syncColor($("primaryColor"),$("primaryColorText"));
+syncColor($("secondaryColor"),$("secondaryColorText"));
+
+function resetCollegeForm(){
+  $("collegeForm").reset();
+  $("editingSchoolId").value="";
+  $("schoolId").disabled=false;
+  $("collegeFormTitle").textContent="Add New College";
+  $("collegeFormSubtitle").textContent="Create the college profile, branding and administrator details.";
+  $("collegeSubmitBtn").textContent="Create College";
+  $("status").value="active";
+  $("primaryColor").value="#087b43";$("primaryColorText").value="#087b43";
+  $("secondaryColor").value="#075c38";$("secondaryColorText").value="#075c38";
+  $("logoPreview").style.display="none";$("logoPreview").removeAttribute("src");
+  $("campusPreview").style.display="none";$("campusPreview").removeAttribute("src");
+}
+window.showAddCollege=()=>{resetCollegeForm();showPage("addCollege")};
+$("logoFile").addEventListener("change",e=>{const f=e.target.files[0];if(f){const u=URL.createObjectURL(f);$("logoPreview").src=u;$("logoPreview").style.display="block";}});
+$("campusFile").addEventListener("change",e=>{const f=e.target.files[0];if(f){const u=URL.createObjectURL(f);$("campusPreview").src=u;$("campusPreview").style.display="block";}});
+
+$("loginForm").addEventListener("submit",async e=>{
+e.preventDefault();$("loginError").classList.add("hidden");
+try{await signInWithEmailAndPassword(auth,$("loginEmail").value.trim(),$("loginPassword").value)}
+catch(err){console.error(err);$("loginError").textContent="Login failed. Check the email/password and make sure the account is authorized as Platform Super Admin.";$("loginError").classList.remove("hidden")}
+});
+$("logoutBtn").addEventListener("click",()=>signOut(auth));
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    $("loginView").classList.remove("hidden");
+    $("appView").classList.add("hidden");
+    return;
+  }
+
+  // SECURITY: Authentication alone does NOT grant Platform Super Admin access.
+  // The signed-in user's role must exist in Firestore under:
+  // platformUsers/{uid} with role: "platformSuperAdmin"
+  try{
+    const roleSnap=await getDoc(doc(db,"platformUsers",user.uid));
+    const roleDoc=roleSnap.exists()?roleSnap:null;
+
+    if(!roleDoc || roleDoc.data()?.role!=="platformSuperAdmin"){
+      await signOut(auth);
+      $("loginError").textContent="Access denied. This Firebase account is not registered as a Platform Super Admin.";
+      $("loginError").classList.remove("hidden");
+      return;
+    }
+
+    $("adminEmail").textContent=user.email||"";
+    $("loginView").classList.add("hidden");
+    $("appView").classList.remove("hidden");
+    showPage("dashboard");
+  }catch(err){
+    console.error("Super Admin role verification failed:",err);
+    await signOut(auth);
+    $("loginError").textContent="Unable to verify Platform Super Admin access. Check Firestore configuration and Security Rules.";
+    $("loginError").classList.remove("hidden");
+  }
+});
+
+async function loadColleges(){
+const wrap=$("collegeTable"),recent=$("recentColleges");
+try{
+const snap=await getDocs(collection(db,"colleges"));
+const rows=snap.docs.map(d=>({id:d.id,...d.data()}));
+const active=rows.filter(x=>String(x.status||"active")==="active").length;
+$("statColleges").textContent=rows.length;$("statActive").textContent=active;$("statSuspended").textContent=rows.length-active;
+if(!rows.length){
+const empty='<div class="empty">No colleges have been added yet. Click <b>+ Add College</b> to create the first college.</div>';
+wrap.innerHTML=empty;recent.innerHTML=empty;return;
+}
+rows.sort((a,b)=>{const ta=a.createdAt?.seconds||0,tb=b.createdAt?.seconds||0;return tb-ta||String(a.name||"").localeCompare(String(b.name||""))});
+wrap.innerHTML=`<table><thead><tr><th>College</th><th>ID</th><th>State</th><th>Status</th><th>Administrator</th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${esc(x.name)}</b><br><span style="font-size:11px;color:#6d8177">${esc(x.shortName)}</span></td><td><code>${esc(x.id)}</code></td><td>${esc(x.state)}</td><td><span class="status ${x.status==="suspended"?"suspended":"active"}">${x.status==="suspended"?"Suspended":"Active"}</span></td><td>${esc(x.adminName||"Not assigned")}<br><span style="font-size:11px;color:#6d8177">${esc(x.adminEmail||"")}</span></td><td><button class="btn btn-outline" data-view="${esc(x.id)}">View</button> <button class="btn btn-green" data-edit="${esc(x.id)}">Edit</button></td></tr>`).join("")}</tbody></table>`;
+const recentRows=rows.slice(0,5);
+recent.innerHTML=`<table><thead><tr><th>College</th><th>ID</th><th>Status</th><th>Action</th></tr></thead><tbody>${recentRows.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.id)}</td><td><span class="status ${x.status==="suspended"?"suspended":"active"}">${esc(x.status||"active")}</span></td><td><button class="btn btn-outline" data-view="${esc(x.id)}">View</button> <button class="btn btn-green" data-edit="${esc(x.id)}">Edit</button></td></tr>`).join("")}</tbody></table>`;
+document.querySelectorAll("[data-view]").forEach(btn=>btn.onclick=()=>viewCollege(btn.dataset.view));
+ document.querySelectorAll("[data-edit]").forEach(btn=>btn.onclick=()=>editCollege(btn.dataset.edit));
+}catch(err){
+console.error("loadColleges:",err);
+wrap.innerHTML='<div class="empty">Unable to load colleges. The Firestore Security Rules must allow the signed-in Super Admin to read the <b>colleges</b> collection.</div>';recent.innerHTML=wrap.innerHTML;
+}
+}
+
+async function viewCollege(id){
+ try{
+   const snap=await getDoc(doc(db,"colleges",id));
+   if(!snap.exists()){toast("College not found.");return}
+   const x=snap.data();
+   alert(`COLLEGE DETAILS\n\nName: ${x.name||""}\nShort Name: ${x.shortName||""}\nCollege ID: ${id}\nState: ${x.state||""}\nLocation: ${x.location||""}\nEmail: ${x.email||""}\nPhone: ${x.phone||""}\nAddress: ${x.address||""}\nWebsite: ${x.website||""}\nTagline: ${x.tagline||""}\nPrimary Color: ${x.primaryColor||""}\nSecondary Color: ${x.secondaryColor||""}\nLogo: ${x.logoUrl||"Not uploaded"}\nCampus Image: ${x.campusImageUrl||"Not uploaded"}\nStatus: ${x.status||"active"}\n\nAdministrator: ${x.adminName||"Not assigned"}\nAdmin Email: ${x.adminEmail||""}`);
+ }catch(err){toast("Unable to load college details.");console.error(err)}
+}
+
+async function editCollege(id){
+ try{
+   const snap=await getDoc(doc(db,"colleges",id));
+   if(!snap.exists()){toast("College not found.");return}
+   const x=snap.data();
+   $("editingSchoolId").value=id;
+   $("schoolId").value=id;$("schoolId").disabled=true;
+   $("collegeName").value=x.name||"";$("shortName").value=x.shortName||"";$("state").value=x.state||"";
+   $("location").value=x.location||"";$("collegeEmail").value=x.email||"";$("phone").value=x.phone||"";
+   $("address").value=x.address||"";$("website").value=x.website||"";$("status").value=x.status||"active";
+   $("tagline").value=x.tagline||"";$("adminName").value=x.adminName||"";$("adminEmailInput").value=x.adminEmail||"";$("tempPassword").value="";
+   const pc=/^#[0-9a-fA-F]{6}$/.test(x.primaryColor||"")?x.primaryColor:"#087b43";
+   const sc=/^#[0-9a-fA-F]{6}$/.test(x.secondaryColor||"")?x.secondaryColor:"#075c38";
+   $("primaryColor").value=pc;$("primaryColorText").value=pc;$("secondaryColor").value=sc;$("secondaryColorText").value=sc;
+   if(x.logoUrl){$("logoPreview").src=x.logoUrl;$("logoPreview").style.display="block";}
+   if(x.campusImageUrl){$("campusPreview").src=x.campusImageUrl;$("campusPreview").style.display="block";}
+   $("collegeFormTitle").textContent="Edit College";
+   $("collegeFormSubtitle").textContent=`Update branding and profile for ${id}.`;
+   $("collegeSubmitBtn").textContent="Save Changes";
+   showPage("addCollege");
+ }catch(err){console.error(err);toast("Unable to open college for editing.")}
+}
+
+async function uploadBrandingFile(file,folder){
+ if(!file)return "";
+ const form=new FormData();
+ form.append("file",file);
+ form.append("upload_preset","Obaestate");
+ form.append("folder",folder);
+ const res=await fetch("https://api.cloudinary.com/v1_1/hjdnytcb/image/upload",{method:"POST",body:form});
+ const data=await res.json().catch(()=>({}));
+ if(!res.ok || !data.secure_url) throw new Error(data?.error?.message||"Cloudinary upload failed.");
+ return data.secure_url;
+}
+
+$("collegeForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const schoolId=$("schoolId").value.trim().toLowerCase();
+ if(!/^[a-z0-9-]+$/.test(schoolId)){toast("College ID can only contain lowercase letters, numbers and hyphens.");return}
+ const editingId=$("editingSchoolId").value.trim();
+ const currentUser=auth.currentUser;
+ if(!currentUser){toast("Your Super Admin session has expired.");return}
+ const primary=$("primaryColorText").value.trim();
+ const secondary=$("secondaryColorText").value.trim();
+ if(!/^#[0-9a-fA-F]{6}$/.test(primary)||!/^#[0-9a-fA-F]{6}$/.test(secondary)){toast("Use valid 6-digit hex colors, e.g. #087B43.");return}
+ const btn=$("collegeSubmitBtn");btn.disabled=true;btn.textContent=editingId?"Saving...":"Creating...";
+ try{
+   const ref=doc(db,"colleges",schoolId);
+   if(!editingId){
+     const existing=await getDoc(ref);
+     if(existing.exists()){toast("That College ID already exists.");return}
+   }
+   const oldSnap=await getDoc(ref);
+   const old=oldSnap.exists()?oldSnap.data():{};
+   let logoUrl=old.logoUrl||"";
+   let campusImageUrl=old.campusImageUrl||"";
+   if($("logoFile").files[0]) logoUrl=await uploadBrandingFile($("logoFile").files[0],`myschool-mis/${schoolId}/branding`);
+   if($("campusFile").files[0]) campusImageUrl=await uploadBrandingFile($("campusFile").files[0],`myschool-mis/${schoolId}/branding`);
+   const data={
+     name:$("collegeName").value.trim(),shortName:$("shortName").value.trim(),schoolId,
+     state:$("state").value.trim(),location:$("location").value.trim(),email:$("collegeEmail").value.trim(),
+     phone:$("phone").value.trim(),address:$("address").value.trim(),website:$("website").value.trim(),
+     status:$("status").value,tagline:$("tagline").value.trim(),primaryColor:primary.toUpperCase(),secondaryColor:secondary.toUpperCase(),
+     logoUrl,campusImageUrl,adminName:$("adminName").value.trim(),adminEmail:$("adminEmailInput").value.trim(),
+     updatedBy:currentUser.uid,updatedByEmail:currentUser.email||"",updatedAt:serverTimestamp()
+   };
+   if(!editingId){data.createdBy=currentUser.uid;data.createdAt=serverTimestamp();}
+   await setDoc(ref,data,{merge:true});
+   await addDoc(collection(db,"auditLogs"),{action:editingId?"college_updated":"college_created",schoolId,collegeName:data.name,performedBy:currentUser.uid,performedByEmail:currentUser.email||"",createdAt:serverTimestamp()});
+   toast(editingId?"College updated successfully.":"College created successfully.");
+   resetCollegeForm();showPage("colleges");
+ }catch(err){console.error("save college:",err);toast(err?.code==="permission-denied"?"Firestore permission denied. Publish the Super Admin rules that allow college updates.":"Could not save college. Check Cloudinary and Firebase configuration.");}
+ finally{btn.disabled=false;btn.textContent=$("editingSchoolId").value?"Save Changes":"Create College";}
+});
+
+async function loadAudit(){
+const wrap=$("auditTable");
+try{
+const snap=await getDocs(query(collection(db,"auditLogs"),orderBy("createdAt","desc"),limit(50)));
+if(snap.empty){wrap.innerHTML='<div class="empty">No audit activity yet.</div>';return}
+wrap.innerHTML=`<table><thead><tr><th>Action</th><th>College</th><th>Performed By</th><th>Date</th></tr></thead><tbody>${snap.docs.map(d=>{const x=d.data();const dt=x.createdAt?.toDate?x.createdAt.toDate().toLocaleString():"Pending";return `<tr><td><b>${esc(x.action)}</b></td><td>${esc(x.schoolId||"—")}</td><td>${esc(x.performedByEmail||x.performedBy||"—")}</td><td>${esc(dt)}</td></tr>`}).join("")}</tbody></table>`;
+}catch(err){console.error("loadAudit:",err);wrap.innerHTML='<div class="empty">Audit logs are not available yet. Configure the corresponding Firestore Security Rules.</div>'}
+}
+</script>
+</body>
+</html>
